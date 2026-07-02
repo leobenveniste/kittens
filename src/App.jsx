@@ -24,6 +24,7 @@ import {
 } from './utils/audio';
 
 function App() {
+  // 1. Declaraciones de Estado y Refs (Hooks)
   const [gridSize, setGridSize] = useState(8);
   const [puzzle, setPuzzle] = useState(null);
   const [board, setBoard] = useState([]); // Matriz NxN con valores: 'empty' | 'cross' | 'cat'
@@ -51,7 +52,7 @@ function App() {
   const dragTargetState = useRef(null);
   const lastTouchedCell = useRef(null);
 
-  // Sincronizar el tema con las clases de HTML
+  // 2. Efecto de Sincronización del Tema (Hook)
   useEffect(() => {
     localStorage.setItem('kittens-theme', theme);
     const root = window.document.documentElement;
@@ -62,7 +63,7 @@ function App() {
     }
   }, [theme]);
 
-  // Inicializar o cambiar puzzle
+  // 3. Callback de Creación del Puzzle (Hook)
   const handleCreatePuzzle = useCallback((size) => {
     const newPuzzle = generatePuzzle(size);
     setPuzzle(newPuzzle);
@@ -82,7 +83,7 @@ function App() {
     }, 1000);
   }, []);
 
-  // Crear el primer puzzle al cargar
+  // 4. Efecto de Puzzle Inicial en Montaje (Hook)
   useEffect(() => {
     handleCreatePuzzle(gridSize);
     return () => {
@@ -90,14 +91,14 @@ function App() {
     };
   }, []);
 
-  // Manejar el temporizador según el estado del juego
+  // 5. Efecto de Parar Temporizador al Ganar (Hook)
   useEffect(() => {
     if (gameStatus === 'won') {
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }, [gameStatus]);
 
-  // Chequear conflictos generales (para resaltar en rojo)
+  // 6. Callback para obtener conflictos (Hook)
   const getConflicts = useCallback((currentCats, currentRegions) => {
     const conflicts = new Set();
     
@@ -126,71 +127,7 @@ function App() {
     return conflicts;
   }, []);
 
-  // Pantalla de carga inicial: se muestra si no se ha cargado el puzzle o si el tablero está desincronizado
-  if (!puzzle || board.length !== gridSize) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 transition-colors duration-200">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="p-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-2xl shadow-sm animate-bounce">
-            <Cat className="w-12 h-12" />
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">Cargando Kittens...</h2>
-          <p className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Preparando gatitos y secciones...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { regions, regionColors, solution } = puzzle;
-
-  // Derivar las posiciones de los gatos actualmente en el tablero
-  const cats = [];
-  if (board && board.length === puzzle.gridSize) {
-    for (let r = 0; r < puzzle.gridSize; r++) {
-      for (let c = 0; c < puzzle.gridSize; c++) {
-        if (board[r][c] === 'cat') {
-          cats.push({ r, c });
-        }
-      }
-    }
-  }
-
-  // Verifica si una casilla (r, c) está bloqueada por cualquier gato del tablero
-  // (misma fila, misma columna, alrededor en las 8 casillas adyacentes o misma región/sección)
-  const isBlockedByCat = (r, c) => {
-    return cats.some(cat => {
-      // Ignorar el propio gato de la casilla
-      if (cat.r === r && cat.c === c) return false;
-      
-      const sameRow = cat.r === r;
-      const sameCol = cat.c === c;
-      const adjacent = Math.abs(cat.r - r) <= 1 && Math.abs(cat.c - c) <= 1;
-      const sameRegion = regions[cat.r]?.[cat.c] === regions[r]?.[c];
-      return sameRow || sameCol || adjacent || sameRegion;
-    });
-  };
-
-  // Evaluar estado de celdas
-  const hasCat = (r, c) => board[r]?.[c] === 'cat';
-  const isManualCross = (r, c) => board[r]?.[c] === 'cross';
-  
-  // Una celda tiene cruz automática si no tiene gato y está bloqueada por algún gato
-  const hasAutoCross = (r, c) => {
-    if (hasCat(r, c)) return false;
-    return isBlockedByCat(r, c);
-  };
-
-  // Gatos en conflicto
-  const conflictingCats = getConflicts(cats, regions);
-
-  // Verificar condición de victoria
-  const checkWinCondition = (currentCats) => {
-    if (currentCats.length !== puzzle.gridSize) return false;
-    const conflicts = getConflicts(currentCats, regions);
-    return conflicts.size === 0;
-  };
-
-  // Efecto de verificación automática de victoria
+  // 7. Efecto de verificación automática de victoria (Hook)
   useEffect(() => {
     if (gameStatus === 'won' || !puzzle || board.length !== gridSize) return;
     
@@ -203,18 +140,21 @@ function App() {
       }
     }
 
-    if (currentCats.length === puzzle.gridSize && checkWinCondition(currentCats)) {
-      setGameStatus('won');
-      playWin();
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 }
-      });
+    if (currentCats.length === puzzle.gridSize) {
+      const conflicts = getConflicts(currentCats, puzzle.regions);
+      if (conflicts.size === 0) {
+        setGameStatus('won');
+        playWin();
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      }
     }
-  }, [board, puzzle, gameStatus]);
+  }, [board, puzzle, gameStatus, getConflicts, gridSize]);
 
-  // Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio (retorna el nuevo estado)
+  // 8. Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio
   const handleCellClick = (r, c, isStart = false) => {
     if (gameStatus === 'won') return board[r][c];
 
@@ -244,7 +184,7 @@ function App() {
     return nextState;
   };
 
-  // Click derecho para cruz manual rápida (retorna el nuevo estado)
+  // 9. Click derecho para cruz manual rápida
   const handleCellRightClick = (r, c, isStart = false) => {
     if (gameStatus === 'won') return board[r][c];
 
@@ -271,7 +211,7 @@ function App() {
     return nextState;
   };
 
-  // Gestores del gesto de arrastre (drag)
+  // 10. Gestores del arrastre (drag)
   const startDrag = (r, c, isRightClick = false) => {
     if (gameStatus === 'won') return;
     isDragging.current = true;
@@ -290,7 +230,6 @@ function App() {
     if (!isDragging.current || !dragTargetState.current || gameStatus === 'won') return;
     if (board[r][c] === dragTargetState.current) return; // Ya tiene el estado
 
-    // Sonido sutil al arrastrar
     if (dragTargetState.current === 'cross') {
       playClick();
     } else if (dragTargetState.current === 'cat') {
@@ -311,6 +250,71 @@ function App() {
     lastTouchedCell.current = null;
   };
 
+  // 11. Listener global de mouseup para detener el arrastre fuera del tablero (Hook)
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      endDrag();
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
+
+  // 12. Pantalla de carga inicial (CONDITIONAL RETURN)
+  // Ocurre al final de la declaración de todos los hooks para cumplir con las Reglas de Hooks de React.
+  if (!puzzle || board.length !== gridSize) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 transition-colors duration-200">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="p-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-2xl shadow-sm animate-bounce">
+            <Cat className="w-12 h-12" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">Cargando Kittens...</h2>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Preparando gatitos y secciones...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 13. Datos derivados seguros (el puzzle no es nulo aquí)
+  const { regions, regionColors, solution } = puzzle;
+
+  // Derivar las posiciones de los gatos actualmente en el tablero
+  const cats = [];
+  for (let r = 0; r < puzzle.gridSize; r++) {
+    for (let c = 0; c < puzzle.gridSize; c++) {
+      if (board[r]?.[c] === 'cat') {
+        cats.push({ r, c });
+      }
+    }
+  }
+
+  // Verifica si una casilla (r, c) está bloqueada por cualquier gato del tablero
+  const isBlockedByCat = (r, c) => {
+    return cats.some(cat => {
+      if (cat.r === r && cat.c === c) return false;
+      const sameRow = cat.r === r;
+      const sameCol = cat.c === c;
+      const adjacent = Math.abs(cat.r - r) <= 1 && Math.abs(cat.c - c) <= 1;
+      const sameRegion = regions[cat.r]?.[cat.c] === regions[r]?.[c];
+      return sameRow || sameCol || adjacent || sameRegion;
+    });
+  };
+
+  // Evaluar estado de celdas
+  const hasCat = (r, c) => board[r]?.[c] === 'cat';
+  const isManualCross = (r, c) => board[r]?.[c] === 'cross';
+  
+  // Una celda tiene cruz automática si no tiene gato y está bloqueada por algún gato
+  const hasAutoCross = (r, c) => {
+    if (hasCat(r, c)) return false;
+    return isBlockedByCat(r, c);
+  };
+
+  // Gatos en conflicto
+  const conflictingCats = getConflicts(cats, regions);
+
   // Manejar arrastre por toque en móviles (Touch events)
   const handleTouchStart = (e) => {
     if (gameStatus === 'won') return;
@@ -322,7 +326,7 @@ function App() {
         const r = parseInt(cellElement.getAttribute('data-row'), 10);
         const c = parseInt(cellElement.getAttribute('data-col'), 10);
         if (!isNaN(r) && !isNaN(c)) {
-          e.preventDefault(); // Evitar scroll de la página al arrastrar
+          e.preventDefault(); // Evitar scroll
           startDrag(r, c, false);
         }
       }
@@ -348,17 +352,6 @@ function App() {
     }
   };
 
-  // Listener global de mouseup para detener el arrastre fuera del tablero
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      endDrag();
-    };
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, []);
-
   // Deshacer (Undo)
   const handleUndo = () => {
     if (history.length === 0 || gameStatus === 'won') return;
@@ -369,11 +362,10 @@ function App() {
     setMoves(m => m + 1);
   };
 
-  // Dar una pista (Hint): Descarta 4 casilleros contiguos en donde no hay gato en la solución
+  // Dar una pista (Hint)
   const handleHint = () => {
     if (gameStatus === 'won') return;
 
-    // Helper para obtener vecinos de una celda (4-conectados)
     const getNeighbors = (row, col) => {
       const neighbors = [];
       if (row > 0) neighbors.push({ r: row - 1, c: col });
@@ -383,8 +375,6 @@ function App() {
       return neighbors;
     };
 
-    // Candidatos: casillas vacías en el tablero del usuario, sin cruces auto ni gatos,
-    // y que en la solución del puzzle NO contengan gato.
     const candidates = [];
     for (let r = 0; r < puzzle.gridSize; r++) {
       for (let c = 0; c < puzzle.gridSize; c++) {
@@ -398,7 +388,6 @@ function App() {
 
     let cellsToDiscard = [];
 
-    // Intentar encontrar un grupo conectado de 4 casillas
     for (let start of candidates) {
       const group = [start];
       const queue = [...getNeighbors(start.r, start.c)];
@@ -419,7 +408,6 @@ function App() {
       }
     }
 
-    // Fallback: Si no hay grupo de 4, intentar encontrar de tamaño 3, 2 o 1
     if (cellsToDiscard.length === 0) {
       for (let size = 3; size >= 1; size--) {
         for (let start of candidates) {
@@ -449,7 +437,6 @@ function App() {
       setHintsUsed(h => h + 1);
       setMoves(m => m + 1);
 
-      // Marcar estas casillas con cruz manual ('cross') en el tablero
       const nextBoard = board.map((row, ri) =>
         row.map((val, ci) => {
           const shouldDiscard = cellsToDiscard.some(cell => cell.r === ri && cell.c === ci);
@@ -457,12 +444,9 @@ function App() {
         })
       );
       setBoard(nextBoard);
-
-      // Resaltar temporalmente las casillas descartadas para indicación visual
       setHintAnimationCell(cellsToDiscard);
       setTimeout(() => setHintAnimationCell(null), 1200);
     } else {
-      // No hay más casillas que descartar
       playError();
     }
   };
@@ -473,7 +457,6 @@ function App() {
     playClick();
     setHistory(prev => [...prev, board]);
     
-    // Crear tablero con solución
     const newBoard = Array.from({ length: puzzle.gridSize }, () => Array(puzzle.gridSize).fill('empty'));
     solution.forEach(sol => {
       newBoard[sol.r][sol.c] = 'cat';
@@ -494,7 +477,6 @@ function App() {
     setSolvedByComputer(false);
   };
 
-  // Formatear segundos a MM:SS
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
@@ -503,11 +485,10 @@ function App() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200 overflow-hidden">
-      {/* Header con controles integrados en una sola fila */}
+      {/* Header */}
       <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200 shrink-0">
         <div className="max-w-5xl mx-auto px-4 py-2.5 grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 md:gap-4">
           
-          {/* Logo y título a la izquierda */}
           <div className="flex items-center gap-3 col-span-1 order-1 flex-row">
             <div className="p-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
               <Cat className="w-6 h-6" />
@@ -522,9 +503,8 @@ function App() {
             </div>
           </div>
 
-          {/* Barra de Herramientas (Toolbar) en el Centro - Diseño de píldora */}
+          {/* Toolbar */}
           <div className="col-span-2 order-3 md:order-2 flex items-center justify-between md:justify-start gap-x-3 md:gap-x-5 gap-y-2 text-xs md:text-sm font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-4 py-1.5 rounded-full shadow-sm w-full md:w-auto">
-            {/* Estadísticas */}
             <div className="flex items-center gap-2.5 md:gap-4 border-r border-neutral-200 dark:border-neutral-700 pr-3 md:pr-4 text-[11px] sm:text-xs md:text-sm">
               <span className="flex items-center gap-1 cursor-help" title="Tiempo transcurrido">
                 ⏱️ <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</span>
@@ -537,7 +517,6 @@ function App() {
               </span>
             </div>
 
-            {/* Botones de Acción */}
             <div className="flex items-center gap-1">
               <button
                 onClick={handleUndo}
@@ -580,9 +559,8 @@ function App() {
             </div>
           </div>
 
-          {/* Ajustes y Controles a la derecha */}
+          {/* Ajustes a la derecha */}
           <div className="flex items-center gap-2 col-span-1 order-2 justify-end">
-            {/* Toggle de Modo Oscuro / Claro */}
             <button
               onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
               className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
@@ -591,7 +569,6 @@ function App() {
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
             </button>
 
-            {/* Ajuste de Tamaño */}
             <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-lg p-0.5 bg-white dark:bg-neutral-900">
               <button 
                 onClick={() => {
@@ -634,26 +611,24 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content Area con diseño centrado y altura controlada sin scroll */}
+      {/* Main Content Area */}
       <main className="flex-grow flex items-center justify-center py-4 px-4 md:px-8 max-w-5xl mx-auto w-full overflow-hidden">
         <div className="flex flex-col items-center justify-center w-full">
           
-          {/* Tablero de Juego */}
           <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
-            {/* Mensaje de conflicto */}
             {conflictingCats.size > 0 && gameStatus !== 'won' && (
               <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium shrink-0">
                 ⚠️ ¡Hay gatos en conflicto en la grilla!
               </div>
             )}
 
-            {/* Grid de Juego - Tamaño autolimitado para evitar scroll */}
+            {/* Grid */}
             <div 
               className="w-full max-w-[min(410px,84vw,52dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
               style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onTouchEnd={endDrag}
             >
               {Array.from({ length: puzzle.gridSize }).map((_, r) =>
                 Array.from({ length: puzzle.gridSize }).map((_, c) => {
@@ -663,7 +638,6 @@ function App() {
                   const isAutoX = hasAutoCross(r, c);
                   const isManualX = isManualCross(r, c);
                   
-                  // Bordes inteligentes para evitar duplicados y delimitar regiones (siempre negros para contrastar con las regiones de color)
                   const borderTop = (r === 0 || regions[r - 1][c] !== regionId) ? 'border-t-3 border-t-neutral-900' : 'border-t border-t-black/15';
                   const borderLeft = (c === 0 || regions[r][c - 1] !== regionId) ? 'border-l-3 border-l-neutral-900' : 'border-l border-l-black/15';
                   const borderBottom = (r === puzzle.gridSize - 1) ? 'border-b-3 border-b-neutral-900' : '';
@@ -674,7 +648,6 @@ function App() {
                     ? hintAnimationCell.some(cell => cell.r === r && cell.c === c)
                     : hintAnimationCell?.r === r && hintAnimationCell?.c === c;
 
-                  // Clases de fondo adaptadas al tema de color actual (permanecen vibrantes e idénticas)
                   let bgClass = colorConfig.bg;
                   if (isConflicting) {
                     bgClass = 'bg-red-100';
@@ -704,7 +677,6 @@ function App() {
                         ${bgClass}
                       `}
                     >
-                      {/* Renderizar contenido de la celda de manera mutuamente excluyente */}
                       {isCat ? (
                         <div className={`
                           transform transition-transform duration-200 scale-90 md:scale-100
@@ -731,7 +703,7 @@ function App() {
 
         </div>
 
-        {/* Modal de Victoria */}
+        {/* Modal Victoria */}
         {gameStatus === 'won' && !solvedByComputer && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-45 p-4">
             <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-center shadow-2xl animate-[scaleIn_0.3s_ease-out]">
@@ -771,7 +743,7 @@ function App() {
           </div>
         )}
 
-        {/* Modal de Instrucciones Emergente */}
+        {/* Modal Instrucciones */}
         {showInstructions && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-left shadow-2xl animate-[scaleIn_0.2s_ease-out] relative">
@@ -829,7 +801,7 @@ function App() {
         )}
       </main>
 
-      {/* Footer Dedicado "para Ce" */}
+      {/* Footer */}
       <footer className="w-full max-w-5xl mx-auto px-6 py-2.5 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
         <span className="text-xs">
           Kittens Puzzle &copy; 2026
@@ -839,7 +811,6 @@ function App() {
         </span>
       </footer>
 
-      {/* Estilos CSS inline específicos para animaciones personalizadas */}
       <style>{`
         @keyframes shake {
           0%, 100% { transform: scale(1) rotate(0deg); }
