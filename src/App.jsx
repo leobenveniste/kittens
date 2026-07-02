@@ -1,0 +1,746 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  Cat, 
+  X, 
+  RotateCcw, 
+  HelpCircle, 
+  Trophy, 
+  Lightbulb, 
+  Eye, 
+  RefreshCw,
+  Plus,
+  Minus,
+  Sun,
+  Moon
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { generatePuzzle } from './utils/puzzleGenerator';
+import { 
+  playMeow, 
+  playClick, 
+  playRemove, 
+  playWin, 
+  playError 
+} from './utils/audio';
+
+function App() {
+  const [gridSize, setGridSize] = useState(8);
+  const [puzzle, setPuzzle] = useState(null);
+  const [board, setBoard] = useState([]); // Matriz NxN con valores: 'empty' | 'cross' | 'cat'
+  const [history, setHistory] = useState([]); // Historial de estados del tablero para deshacer
+  const [moves, setMoves] = useState(0);
+  const [time, setTime] = useState(0);
+  const [gameStatus, setGameStatus] = useState('playing'); // 'playing' | 'won'
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [hintAnimationCell, setHintAnimationCell] = useState(null); // Casillas resaltadas por pista reciente
+  const [solvedByComputer, setSolvedByComputer] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+
+  // Inicializar el tema de color desde localStorage o el sistema
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('kittens-theme') || 'light';
+    }
+    return 'light';
+  });
+
+  const timerRef = useRef(null);
+
+  // Sincronizar el tema con las clases de HTML
+  useEffect(() => {
+    localStorage.setItem('kittens-theme', theme);
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Inicializar o cambiar puzzle
+  const handleCreatePuzzle = useCallback((size) => {
+    const newPuzzle = generatePuzzle(size);
+    setPuzzle(newPuzzle);
+    setBoard(Array.from({ length: size }, () => Array(size).fill('empty')));
+    setHistory([]);
+    setMoves(0);
+    setTime(0);
+    setGameStatus('playing');
+    setHintsUsed(0);
+    setHintAnimationCell(null);
+    setSolvedByComputer(false);
+    
+    // Iniciar temporizador
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTime(t => t + 1);
+    }, 1000);
+  }, []);
+
+  // Crear el primer puzzle al cargar
+  useEffect(() => {
+    handleCreatePuzzle(gridSize);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // Manejar el temporizador según el estado del juego
+  useEffect(() => {
+    if (gameStatus === 'won') {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [gameStatus]);
+
+  // Chequear conflictos generales (para resaltar en rojo)
+  const getConflicts = useCallback((currentCats, currentRegions) => {
+    const conflicts = new Set();
+    
+    for (let i = 0; i < currentCats.length; i++) {
+      const catA = currentCats[i];
+      for (let j = i + 1; j < currentCats.length; j++) {
+        const catB = currentCats[j];
+        
+        // Regla 1: No más de un gato por sección
+        const sameRegion = currentRegions[catA.r]?.[catA.c] === currentRegions[catB.r]?.[catB.c];
+        
+        // Regla 2 y 3: No más de un gato por fila o columna
+        const sameRow = catA.r === catB.r;
+        const sameCol = catA.c === catB.c;
+        
+        // Regla 4: Los gatos no pueden estar uno al lado del otro (adyacentes)
+        const adjacent = Math.abs(catA.r - catB.r) <= 1 && Math.abs(catA.c - catB.c) <= 1;
+        
+        if (sameRegion || sameRow || sameCol || adjacent) {
+          conflicts.add(`${catA.r},${catA.c}`);
+          conflicts.add(`${catB.r},${catB.c}`);
+        }
+      }
+    }
+    
+    return conflicts;
+  }, []);
+
+  // Pantalla de carga inicial: se muestra si no se ha cargado el puzzle o si el tablero está desincronizado
+  if (!puzzle || board.length !== gridSize) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 transition-colors duration-200">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="p-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-2xl shadow-sm animate-bounce">
+            <Cat className="w-12 h-12" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">Cargando Kittens...</h2>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">Preparando gatitos y secciones...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { regions, regionColors, solution } = puzzle;
+
+  // Derivar las posiciones de los gatos actualmente en el tablero
+  const cats = [];
+  if (board && board.length === puzzle.gridSize) {
+    for (let r = 0; r < puzzle.gridSize; r++) {
+      for (let c = 0; c < puzzle.gridSize; c++) {
+        if (board[r][c] === 'cat') {
+          cats.push({ r, c });
+        }
+      }
+    }
+  }
+
+  // Verifica si una casilla (r, c) está bloqueada por cualquier gato del tablero
+  // (misma fila, misma columna, alrededor en las 8 casillas adyacentes o misma región/sección)
+  const isBlockedByCat = (r, c) => {
+    return cats.some(cat => {
+      // Ignorar el propio gato de la casilla
+      if (cat.r === r && cat.c === c) return false;
+      
+      const sameRow = cat.r === r;
+      const sameCol = cat.c === c;
+      const adjacent = Math.abs(cat.r - r) <= 1 && Math.abs(cat.c - c) <= 1;
+      const sameRegion = regions[cat.r]?.[cat.c] === regions[r]?.[c];
+      return sameRow || sameCol || adjacent || sameRegion;
+    });
+  };
+
+  // Evaluar estado de celdas
+  const hasCat = (r, c) => board[r]?.[c] === 'cat';
+  const isManualCross = (r, c) => board[r]?.[c] === 'cross';
+  
+  // Una celda tiene cruz automática si no tiene gato y está bloqueada por algún gato
+  const hasAutoCross = (r, c) => {
+    if (hasCat(r, c)) return false;
+    return isBlockedByCat(r, c);
+  };
+
+  // Gatos en conflicto
+  const conflictingCats = getConflicts(cats, regions);
+
+  // Verificar condición de victoria
+  const checkWinCondition = (currentCats) => {
+    if (currentCats.length !== puzzle.gridSize) return false;
+    const conflicts = getConflicts(currentCats, regions);
+    return conflicts.size === 0;
+  };
+
+  // Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio
+  const handleCellClick = (r, c) => {
+    if (gameStatus === 'won') return;
+
+    const currentState = board[r][c];
+    let nextState = 'empty';
+
+    if (currentState === 'empty') {
+      nextState = 'cross';
+      playClick();
+    } else if (currentState === 'cross') {
+      nextState = 'cat';
+      playMeow();
+    } else if (currentState === 'cat') {
+      nextState = 'empty';
+      playRemove();
+    }
+
+    // Guardar estado actual en el historial
+    setHistory(prev => [...prev, board]);
+
+    // Actualizar tablero
+    const nextBoard = board.map((row, ri) => 
+      row.map((val, ci) => (ri === r && ci === c) ? nextState : val)
+    );
+    setBoard(nextBoard);
+    setMoves(m => m + 1);
+
+    // Calcular los nuevos gatos para verificar victoria
+    const nextCats = [];
+    for (let ri = 0; ri < puzzle.gridSize; ri++) {
+      for (let ci = 0; ci < puzzle.gridSize; ci++) {
+        const val = (ri === r && ci === c) ? nextState : board[ri][ci];
+        if (val === 'cat') {
+          nextCats.push({ r: ri, c: ci });
+        }
+      }
+    }
+
+    // Verificar si ganó inmediatamente después del click
+    if (checkWinCondition(nextCats)) {
+      setGameStatus('won');
+      playWin();
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+    }
+  };
+
+  // Click derecho para cruz manual rápida
+  const handleCellRightClick = (e, r, c) => {
+    e.preventDefault();
+    if (gameStatus === 'won') return;
+
+    const currentState = board[r][c];
+    let nextState = 'empty';
+
+    if (currentState === 'empty') {
+      nextState = 'cross';
+      playClick();
+    } else {
+      nextState = 'empty';
+      playRemove();
+    }
+
+    setHistory(prev => [...prev, board]);
+    setBoard(prev => prev.map((row, ri) => 
+      row.map((val, ci) => (ri === r && ci === c) ? nextState : val)
+    ));
+    setMoves(m => m + 1);
+  };
+
+  // Deshacer (Undo)
+  const handleUndo = () => {
+    if (history.length === 0 || gameStatus === 'won') return;
+    playRemove();
+    const prevBoard = history[history.length - 1];
+    setBoard(prevBoard);
+    setHistory(prev => prev.slice(0, -1));
+    setMoves(m => m + 1);
+  };
+
+  // Dar una pista (Hint): Descarta 4 casilleros contiguos en donde no hay gato en la solución
+  const handleHint = () => {
+    if (gameStatus === 'won') return;
+
+    // Helper para obtener vecinos de una celda (4-conectados)
+    const getNeighbors = (row, col) => {
+      const neighbors = [];
+      if (row > 0) neighbors.push({ r: row - 1, c: col });
+      if (row < puzzle.gridSize - 1) neighbors.push({ r: row + 1, c: col });
+      if (col > 0) neighbors.push({ r: row, c: col - 1 });
+      if (col < puzzle.gridSize - 1) neighbors.push({ r: row, c: col + 1 });
+      return neighbors;
+    };
+
+    // Candidatos: casillas vacías en el tablero del usuario, sin cruces auto ni gatos,
+    // y que en la solución del puzzle NO contengan gato.
+    const candidates = [];
+    for (let r = 0; r < puzzle.gridSize; r++) {
+      for (let c = 0; c < puzzle.gridSize; c++) {
+        const inSolution = solution.some(s => s.r === r && s.c === c);
+        const isCurrentlyEmpty = board[r][c] === 'empty' && !isBlockedByCat(r, c);
+        if (!inSolution && isCurrentlyEmpty) {
+          candidates.push({ r, c });
+        }
+      }
+    }
+
+    let cellsToDiscard = [];
+
+    // Intentar encontrar un grupo conectado de 4 casillas
+    for (let start of candidates) {
+      const group = [start];
+      const queue = [...getNeighbors(start.r, start.c)];
+      
+      while (queue.length > 0 && group.length < 4) {
+        const next = queue.shift();
+        const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
+        const inGroup = group.some(c => c.r === next.r && c.c === next.c);
+        if (isCand && !inGroup) {
+          group.push(next);
+          queue.push(...getNeighbors(next.r, next.c));
+        }
+      }
+
+      if (group.length === 4) {
+        cellsToDiscard = group;
+        break;
+      }
+    }
+
+    // Fallback: Si no hay grupo de 4, intentar encontrar de tamaño 3, 2 o 1
+    if (cellsToDiscard.length === 0) {
+      for (let size = 3; size >= 1; size--) {
+        for (let start of candidates) {
+          const group = [start];
+          const queue = [...getNeighbors(start.r, start.c)];
+          while (queue.length > 0 && group.length < size) {
+            const next = queue.shift();
+            const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
+            const inGroup = group.some(c => c.r === next.r && c.c === next.c);
+            if (isCand && !inGroup) {
+              group.push(next);
+              queue.push(...getNeighbors(next.r, next.c));
+            }
+          }
+          if (group.length === size) {
+            cellsToDiscard = group;
+            break;
+          }
+        }
+        if (cellsToDiscard.length > 0) break;
+      }
+    }
+
+    if (cellsToDiscard.length > 0) {
+      playClick();
+      setHistory(prev => [...prev, board]);
+      setHintsUsed(h => h + 1);
+      setMoves(m => m + 1);
+
+      // Marcar estas casillas con cruz manual ('cross') en el tablero
+      const nextBoard = board.map((row, ri) =>
+        row.map((val, ci) => {
+          const shouldDiscard = cellsToDiscard.some(cell => cell.r === ri && cell.c === ci);
+          return shouldDiscard ? 'cross' : val;
+        })
+      );
+      setBoard(nextBoard);
+
+      // Resaltar temporalmente las casillas descartadas para indicación visual
+      setHintAnimationCell(cellsToDiscard);
+      setTimeout(() => setHintAnimationCell(null), 1200);
+    } else {
+      // No hay más casillas que descartar
+      playError();
+    }
+  };
+
+  // Mostrar la solución de forma automática (Solve)
+  const handleSolve = () => {
+    if (gameStatus === 'won') return;
+    playClick();
+    setHistory(prev => [...prev, board]);
+    
+    // Crear tablero con solución
+    const newBoard = Array.from({ length: puzzle.gridSize }, () => Array(puzzle.gridSize).fill('empty'));
+    solution.forEach(sol => {
+      newBoard[sol.r][sol.c] = 'cat';
+    });
+    
+    setBoard(newBoard);
+    setGameStatus('won');
+    setSolvedByComputer(true);
+  };
+
+  // Reiniciar tablero actual
+  const handleReset = () => {
+    if (!board.some(row => row.some(cell => cell !== 'empty'))) return;
+    playRemove();
+    setHistory([]);
+    setBoard(Array.from({ length: puzzle.gridSize }, () => Array(puzzle.gridSize).fill('empty')));
+    setGameStatus('playing');
+    setSolvedByComputer(false);
+  };
+
+  // Formatear segundos a MM:SS
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200">
+      {/* Header con controles integrados en una sola fila */}
+      <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200">
+        <div className="max-w-5xl mx-auto px-4 py-3 grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 md:gap-4">
+          
+          {/* Logo y título a la izquierda */}
+          <div className="flex items-center gap-3 col-span-1 order-1 flex-row">
+            <div className="p-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
+              <Cat className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white leading-none">
+                Kittens
+              </h1>
+              <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium mt-0.5">
+                Lógica Felina
+              </span>
+            </div>
+          </div>
+
+          {/* Barra de Herramientas (Toolbar) en el Centro - Diseño de píldora */}
+          <div className="col-span-2 order-3 md:order-2 flex items-center justify-between md:justify-start gap-x-3 md:gap-x-5 gap-y-2 text-xs md:text-sm font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-4 py-1.5 rounded-full shadow-sm w-full md:w-auto">
+            {/* Estadísticas */}
+            <div className="flex items-center gap-2.5 md:gap-4 border-r border-neutral-200 dark:border-neutral-700 pr-3 md:pr-4 text-[11px] sm:text-xs md:text-sm">
+              <span className="flex items-center gap-1 cursor-help" title="Tiempo transcurrido">
+                ⏱️ <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</span>
+              </span>
+              <span className="flex items-center gap-1 cursor-help" title="Movimientos realizados">
+                🔄 <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{moves}</span>
+              </span>
+              <span className="flex items-center gap-1 cursor-help" title="Gatos colocados en el tablero">
+                🐱 <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{cats.length} / {puzzle.gridSize}</span>
+              </span>
+            </div>
+
+            {/* Botones de Acción */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleUndo}
+                disabled={history.length === 0 || gameStatus === 'won'}
+                className="p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Deshacer (Undo)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleHint}
+                disabled={gameStatus === 'won'}
+                className="p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Descartar 4 casilleros vacíos"
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleSolve}
+                disabled={gameStatus === 'won'}
+                className="p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Resolver automáticamente"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleReset}
+                className="p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                title="Reiniciar tablero"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setShowInstructions(true)}
+                className="p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                title="Cómo jugar"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Ajustes y Controles a la derecha */}
+          <div className="flex items-center gap-2 col-span-1 order-2 justify-end">
+            {/* Toggle de Modo Oscuro / Claro */}
+            <button
+              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
+              title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
+            </button>
+
+            {/* Ajuste de Tamaño */}
+            <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-lg p-0.5 bg-white dark:bg-neutral-900">
+              <button 
+                onClick={() => {
+                  const newSize = Math.max(5, gridSize - 1);
+                  setGridSize(newSize);
+                  handleCreatePuzzle(newSize);
+                }}
+                disabled={gridSize <= 5}
+                className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer"
+                title="Reducir tamaño"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-2 text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums">
+                {gridSize}×{gridSize}
+              </span>
+              <button 
+                onClick={() => {
+                  const newSize = Math.min(10, gridSize + 1);
+                  setGridSize(newSize);
+                  handleCreatePuzzle(newSize);
+                }}
+                disabled={gridSize >= 10}
+                className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer"
+                title="Aumentar tamaño"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            
+            <button
+              onClick={() => handleCreatePuzzle(gridSize)}
+              className="flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-medium text-xs px-2.5 py-1.5 rounded-lg border border-transparent transition active:scale-95 cursor-pointer shadow-sm"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Crear</span>
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* Main Content Area con diseño centrado */}
+      <main className="flex-grow flex items-center justify-center py-6 px-4 md:px-8 max-w-5xl mx-auto w-full">
+        <div className="flex flex-col items-center justify-center w-full">
+          
+          {/* Tablero de Juego */}
+          <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
+            {/* Mensaje de conflicto */}
+            {conflictingCats.size > 0 && gameStatus !== 'won' && (
+              <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium">
+                ⚠️ ¡Hay gatos en conflicto en la grilla!
+              </div>
+            )}
+
+            {/* Grid de Juego */}
+            <div 
+              className="w-full aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden"
+              style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
+            >
+              {Array.from({ length: puzzle.gridSize }).map((_, r) =>
+                Array.from({ length: puzzle.gridSize }).map((_, c) => {
+                  const regionId = regions[r][c];
+                  const colorConfig = regionColors[regionId];
+                  const isCat = hasCat(r, c);
+                  const isAutoX = hasAutoCross(r, c);
+                  const isManualX = isManualCross(r, c);
+                  
+                  // Bordes inteligentes para evitar duplicados y delimitar regiones (siempre negros para contrastar con las regiones de color)
+                  const borderTop = (r === 0 || regions[r - 1][c] !== regionId) ? 'border-t-3 border-t-neutral-900' : 'border-t border-t-black/15';
+                  const borderLeft = (c === 0 || regions[r][c - 1] !== regionId) ? 'border-l-3 border-l-neutral-900' : 'border-l border-l-black/15';
+                  const borderBottom = (r === puzzle.gridSize - 1) ? 'border-b-3 border-b-neutral-900' : '';
+                  const borderRight = (c === puzzle.gridSize - 1) ? 'border-r-3 border-r-neutral-900' : '';
+
+                  const isConflicting = conflictingCats.has(`${r},${c}`);
+                  const isHintAnim = Array.isArray(hintAnimationCell)
+                    ? hintAnimationCell.some(cell => cell.r === r && cell.c === c)
+                    : hintAnimationCell?.r === r && hintAnimationCell?.c === c;
+
+                  // Clases de fondo adaptadas al tema de color actual (permanecen vibrantes e idénticas)
+                  let bgClass = colorConfig.bg;
+                  if (isConflicting) {
+                    bgClass = 'bg-red-100';
+                  } else if (isHintAnim) {
+                    bgClass = 'bg-amber-100 animate-pulse';
+                  } else {
+                    bgClass = `${colorConfig.bg} ${colorConfig.hover}`;
+                  }
+
+                  return (
+                    <div
+                      key={`${r}-${c}`}
+                      onClick={() => handleCellClick(r, c)}
+                      onContextMenu={(e) => handleCellRightClick(e, r, c)}
+                      className={`
+                        relative flex items-center justify-center aspect-square game-cell cursor-pointer select-none
+                        ${borderTop} ${borderLeft} ${borderBottom} ${borderRight}
+                        ${bgClass}
+                      `}
+                    >
+                      {/* Renderizar contenido de la celda de manera mutuamente excluyente */}
+                      {isCat ? (
+                        <div className={`
+                          transform transition-transform duration-200 scale-90 md:scale-100
+                          ${isConflicting ? 'text-red-600 animate-bounce' : 'text-neutral-900'}
+                          ${isHintAnim ? 'text-amber-600 scale-110' : ''}
+                        `}>
+                          <Cat className="w-6 h-6 md:w-8 md:h-8 fill-current" />
+                        </div>
+                      ) : isAutoX ? (
+                        <div className="text-black/25 flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2]" />
+                        </div>
+                      ) : isManualX ? (
+                        <div className={`text-black/55 flex items-center justify-center ${isHintAnim ? 'animate-pulse scale-110 text-amber-600' : 'animate-[scaleIn_0.15s_ease-out]'}`}>
+                          <X className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3]" />
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Modal de Victoria */}
+        {gameStatus === 'won' && !solvedByComputer && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-45 p-4">
+            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-center shadow-2xl animate-[scaleIn_0.3s_ease-out]">
+              <div className="inline-flex items-center justify-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-2xl text-amber-500 mb-4 border border-amber-100 dark:border-amber-900/40">
+                <Trophy className="w-12 h-12 stroke-[1.5]" />
+              </div>
+              <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+                ¡Excelente Trabajo!
+              </h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+                Has ubicado todos los gatitos correctamente sin ningún conflicto.
+              </p>
+
+              <div className="grid grid-cols-3 gap-3 bg-neutral-50 dark:bg-neutral-950 p-4 rounded-xl mb-6 border border-neutral-100 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Tiempo</span>
+                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{formatTime(time)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Movimientos</span>
+                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{moves}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Pistas</span>
+                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{hintsUsed}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleCreatePuzzle(gridSize)}
+                className="w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-semibold py-3 rounded-xl border-2 border-neutral-900 dark:border-white transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Jugar de nuevo</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Instrucciones Emergente */}
+        {showInstructions && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-left shadow-2xl animate-[scaleIn_0.2s_ease-out] relative">
+              <button 
+                onClick={() => setShowInstructions(false)}
+                className="absolute top-4 right-4 p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg text-neutral-400 dark:text-neutral-500 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              
+              <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-700 pb-3 mb-4">
+                <HelpCircle className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+                <h2 className="text-lg font-bold text-neutral-900 dark:text-white">¿Cómo Jugar?</h2>
+              </div>
+
+              <div className="space-y-3.5 text-xs md:text-sm text-neutral-600 dark:text-neutral-300">
+                <p>
+                  El objetivo es ubicar exactamente <strong>un gato</strong> en cada fila, columna y sección de color.
+                </p>
+                <div className="border-l-4 border-neutral-900 dark:border-neutral-500 pl-3 py-1 space-y-2 text-xs">
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">1.</span>
+                    <p>Un solo gato por <strong>sección de color</strong>.</p>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">2.</span>
+                    <p>Un solo gato por cada <strong>fila y columna</strong>.</p>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">3.</span>
+                    <p>Los gatos <strong>no pueden tocarse</strong> entre sí (tampoco en diagonal).</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-700 space-y-2 text-xs">
+                  <p>
+                    <strong className="text-neutral-900 dark:text-white">Clic izquierdo:</strong> rota entre Vacío ➔ Cruz ➔ Gato ➔ Vacío.
+                  </p>
+                  <p>
+                    <strong className="text-neutral-900 dark:text-white">Clic derecho:</strong> coloca o quita una cruz manual.
+                  </p>
+                  <p className="bg-neutral-100 dark:bg-neutral-900/60 p-2.5 rounded-lg text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 italic">
+                    Tip: Al colocar un gato, se descartan automáticamente (cruces) su fila, columna, sección y alrededores, ayudando a resolver el puzzle por lógica.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowInstructions(false)}
+                className="mt-6 w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-semibold py-2.5 rounded-xl border border-transparent transition active:scale-95 cursor-pointer text-center text-xs"
+              >
+                ¡Entendido!
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Footer Dedicado "para Ce" */}
+      <footer className="w-full max-w-5xl mx-auto px-6 py-4 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200">
+        <span className="text-xs">
+          Kittens Puzzle &copy; 2026
+        </span>
+        <span className="text-sm font-normal text-neutral-500 dark:text-neutral-500 italic pr-2">
+          para Ce
+        </span>
+      </footer>
+
+      {/* Estilos CSS inline específicos para animaciones personalizadas */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          20%, 60% { transform: scale(1.15) rotate(-8deg); }
+          40%, 80% { transform: scale(1.15) rotate(8deg); }
+        }
+        @keyframes scaleIn {
+          0% { transform: scale(0.9); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default App;
