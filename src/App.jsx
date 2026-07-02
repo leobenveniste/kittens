@@ -46,6 +46,11 @@ function App() {
 
   const timerRef = useRef(null);
 
+  // Referencias para el gesto de arrastre (drag)
+  const isDragging = useRef(false);
+  const dragTargetState = useRef(null);
+  const lastTouchedCell = useRef(null);
+
   // Sincronizar el tema con las clases de HTML
   useEffect(() => {
     localStorage.setItem('kittens-theme', theme);
@@ -185,9 +190,33 @@ function App() {
     return conflicts.size === 0;
   };
 
-  // Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio
-  const handleCellClick = (r, c) => {
-    if (gameStatus === 'won') return;
+  // Efecto de verificación automática de victoria
+  useEffect(() => {
+    if (gameStatus === 'won' || !puzzle || board.length !== gridSize) return;
+    
+    const currentCats = [];
+    for (let r = 0; r < puzzle.gridSize; r++) {
+      for (let c = 0; c < puzzle.gridSize; c++) {
+        if (board[r]?.[c] === 'cat') {
+          currentCats.push({ r, c });
+        }
+      }
+    }
+
+    if (currentCats.length === puzzle.gridSize && checkWinCondition(currentCats)) {
+      setGameStatus('won');
+      playWin();
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+    }
+  }, [board, puzzle, gameStatus]);
+
+  // Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio (retorna el nuevo estado)
+  const handleCellClick = (r, c, isStart = false) => {
+    if (gameStatus === 'won') return board[r][c];
 
     const currentState = board[r][c];
     let nextState = 'empty';
@@ -203,43 +232,21 @@ function App() {
       playRemove();
     }
 
-    // Guardar estado actual en el historial
-    setHistory(prev => [...prev, board]);
+    if (isStart) {
+      setHistory(prev => [...prev, board]);
+    }
 
-    // Actualizar tablero
-    const nextBoard = board.map((row, ri) => 
+    setBoard(prev => prev.map((row, ri) => 
       row.map((val, ci) => (ri === r && ci === c) ? nextState : val)
-    );
-    setBoard(nextBoard);
+    ));
     setMoves(m => m + 1);
 
-    // Calcular los nuevos gatos para verificar victoria
-    const nextCats = [];
-    for (let ri = 0; ri < puzzle.gridSize; ri++) {
-      for (let ci = 0; ci < puzzle.gridSize; ci++) {
-        const val = (ri === r && ci === c) ? nextState : board[ri][ci];
-        if (val === 'cat') {
-          nextCats.push({ r: ri, c: ci });
-        }
-      }
-    }
-
-    // Verificar si ganó inmediatamente después del click
-    if (checkWinCondition(nextCats)) {
-      setGameStatus('won');
-      playWin();
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 }
-      });
-    }
+    return nextState;
   };
 
-  // Click derecho para cruz manual rápida
-  const handleCellRightClick = (e, r, c) => {
-    e.preventDefault();
-    if (gameStatus === 'won') return;
+  // Click derecho para cruz manual rápida (retorna el nuevo estado)
+  const handleCellRightClick = (r, c, isStart = false) => {
+    if (gameStatus === 'won') return board[r][c];
 
     const currentState = board[r][c];
     let nextState = 'empty';
@@ -252,12 +259,105 @@ function App() {
       playRemove();
     }
 
-    setHistory(prev => [...prev, board]);
+    if (isStart) {
+      setHistory(prev => [...prev, board]);
+    }
+
     setBoard(prev => prev.map((row, ri) => 
       row.map((val, ci) => (ri === r && ci === c) ? nextState : val)
     ));
     setMoves(m => m + 1);
+
+    return nextState;
   };
+
+  // Gestores del gesto de arrastre (drag)
+  const startDrag = (r, c, isRightClick = false) => {
+    if (gameStatus === 'won') return;
+    isDragging.current = true;
+    lastTouchedCell.current = { r, c };
+
+    if (isRightClick) {
+      const nextState = handleCellRightClick(r, c, true);
+      dragTargetState.current = nextState;
+    } else {
+      const nextState = handleCellClick(r, c, true);
+      dragTargetState.current = nextState;
+    }
+  };
+
+  const continueDrag = (r, c) => {
+    if (!isDragging.current || !dragTargetState.current || gameStatus === 'won') return;
+    if (board[r][c] === dragTargetState.current) return; // Ya tiene el estado
+
+    // Sonido sutil al arrastrar
+    if (dragTargetState.current === 'cross') {
+      playClick();
+    } else if (dragTargetState.current === 'cat') {
+      playMeow();
+    } else {
+      playRemove();
+    }
+
+    setBoard(prev => prev.map((row, ri) =>
+      row.map((val, ci) => (ri === r && ci === c) ? dragTargetState.current : val)
+    ));
+    setMoves(m => m + 1);
+  };
+
+  const endDrag = () => {
+    isDragging.current = false;
+    dragTargetState.current = null;
+    lastTouchedCell.current = null;
+  };
+
+  // Manejar arrastre por toque en móviles (Touch events)
+  const handleTouchStart = (e) => {
+    if (gameStatus === 'won') return;
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (element) {
+      const cellElement = element.closest('.game-cell');
+      if (cellElement) {
+        const r = parseInt(cellElement.getAttribute('data-row'), 10);
+        const c = parseInt(cellElement.getAttribute('data-col'), 10);
+        if (!isNaN(r) && !isNaN(c)) {
+          e.preventDefault(); // Evitar scroll de la página al arrastrar
+          startDrag(r, c, false);
+        }
+      }
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging.current || gameStatus === 'won') return;
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (element) {
+      const cellElement = element.closest('.game-cell');
+      if (cellElement) {
+        const r = parseInt(cellElement.getAttribute('data-row'), 10);
+        const c = parseInt(cellElement.getAttribute('data-col'), 10);
+        if (!isNaN(r) && !isNaN(c)) {
+          if (lastTouchedCell.current?.r !== r || lastTouchedCell.current?.c !== c) {
+            lastTouchedCell.current = { r, c };
+            continueDrag(r, c);
+          }
+        }
+      }
+    }
+  };
+
+  // Listener global de mouseup para detener el arrastre fuera del tablero
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      endDrag();
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
 
   // Deshacer (Undo)
   const handleUndo = () => {
@@ -402,10 +502,10 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200">
+    <div className="flex flex-col h-[100dvh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200 overflow-hidden">
       {/* Header con controles integrados en una sola fila */}
-      <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200">
-        <div className="max-w-5xl mx-auto px-4 py-3 grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 md:gap-4">
+      <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200 shrink-0">
+        <div className="max-w-5xl mx-auto px-4 py-2.5 grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 md:gap-4">
           
           {/* Logo y título a la izquierda */}
           <div className="flex items-center gap-3 col-span-1 order-1 flex-row">
@@ -534,23 +634,26 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content Area con diseño centrado */}
-      <main className="flex-grow flex items-center justify-center py-6 px-4 md:px-8 max-w-5xl mx-auto w-full">
+      {/* Main Content Area con diseño centrado y altura controlada sin scroll */}
+      <main className="flex-grow flex items-center justify-center py-4 px-4 md:px-8 max-w-5xl mx-auto w-full overflow-hidden">
         <div className="flex flex-col items-center justify-center w-full">
           
           {/* Tablero de Juego */}
           <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
             {/* Mensaje de conflicto */}
             {conflictingCats.size > 0 && gameStatus !== 'won' && (
-              <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium">
+              <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium shrink-0">
                 ⚠️ ¡Hay gatos en conflicto en la grilla!
               </div>
             )}
 
-            {/* Grid de Juego */}
+            {/* Grid de Juego - Tamaño autolimitado para evitar scroll */}
             <div 
-              className="w-full aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden"
+              className="w-full max-w-[min(410px,84vw,52dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
               style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             >
               {Array.from({ length: puzzle.gridSize }).map((_, r) =>
                 Array.from({ length: puzzle.gridSize }).map((_, c) => {
@@ -584,8 +687,17 @@ function App() {
                   return (
                     <div
                       key={`${r}-${c}`}
-                      onClick={() => handleCellClick(r, c)}
-                      onContextMenu={(e) => handleCellRightClick(e, r, c)}
+                      data-row={r}
+                      data-col={c}
+                      onMouseDown={(e) => {
+                        if (e.button === 0) {
+                          startDrag(r, c, false);
+                        } else if (e.button === 2) {
+                          startDrag(r, c, true);
+                        }
+                      }}
+                      onMouseEnter={() => continueDrag(r, c)}
+                      onContextMenu={(e) => e.preventDefault()}
                       className={`
                         relative flex items-center justify-center aspect-square game-cell cursor-pointer select-none
                         ${borderTop} ${borderLeft} ${borderBottom} ${borderRight}
@@ -633,7 +745,7 @@ function App() {
                 Has ubicado todos los gatitos correctamente sin ningún conflicto.
               </p>
 
-              <div className="grid grid-cols-3 gap-3 bg-neutral-50 dark:bg-neutral-950 p-4 rounded-xl mb-6 border border-neutral-100 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">
+              <div className="grid grid-cols-3 gap-3 bg-neutral-50 dark:bg-neutral-950 p-4 rounded-xl mb-6 border border-neutral-100 dark:border-amber-900/45 text-neutral-700 dark:text-neutral-300">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Tiempo</span>
                   <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{formatTime(time)}</span>
@@ -718,7 +830,7 @@ function App() {
       </main>
 
       {/* Footer Dedicado "para Ce" */}
-      <footer className="w-full max-w-5xl mx-auto px-6 py-4 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200">
+      <footer className="w-full max-w-5xl mx-auto px-6 py-2.5 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
         <span className="text-xs">
           Kittens Puzzle &copy; 2026
         </span>
