@@ -10,8 +10,9 @@ function initAudio() {
 }
 
 /**
- * Genera un maullido sintético usando Web Audio API.
- * Modula osciladores de triángulo y diente de sierra, barriendo la frecuencia de baja a alta y luego cayendo.
+ * Genera un maullido sintético realista ("miau") usando síntesis sustractiva y formántica.
+ * Utiliza un oscilador de triángulo, un armónico de sierra, un LFO para vibrato
+ * y un filtro pasa-banda resonante para simular la vocalización de la boca.
  */
 export function playMeow() {
   try {
@@ -19,52 +20,72 @@ export function playMeow() {
     if (!audioCtx) return;
 
     const t = audioCtx.currentTime;
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
+    const duration = 0.48; // Duración corta y adorable de 480ms
 
+    // 1. Osciladores
+    const osc1 = audioCtx.createOscillator(); // Tono fundamental
+    const osc2 = audioCtx.createOscillator(); // Brillo/Armónicos
     osc1.type = 'triangle';
     osc2.type = 'sawtooth';
 
+    // 2. Ganancia individual para mezclar los osciladores
     const gain1 = audioCtx.createGain();
     const gain2 = audioCtx.createGain();
-    gain1.gain.value = 0.8;
-    gain2.gain.value = 0.15; // Armónico suave
+    gain1.gain.value = 0.45;
+    gain2.gain.value = 0.07; // Pincelada de armónicos para el carácter "aullado"
 
+    // 3. Vibrato (LFO de 7.5 Hz) para darle un matiz orgánico y tierno
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 7.5;
+    lfoGain.gain.value = 15; // Desafinación sutil (15 Hz)
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+
+    // 4. Filtro de Formantes (Pasa-banda resonante con Q=3.8 para morphing vocal)
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 3.8; 
+    
+    // Barrido del filtro para recrear el sonido "M-ee-ow"
+    filter.frequency.setValueAtTime(650, t); // Inicial: Boca casi cerrada "M"
+    filter.frequency.exponentialRampToValueAtTime(1950, t + 0.15); // Pico: Boca abierta "ee"
+    filter.frequency.exponentialRampToValueAtTime(750, t + duration); // Final: Boca cerrándose "ow"
+
+    // 5. Barrido de tono del maullido (sube levemente y cae al final)
+    const baseFreq = 540; // Tono inicial medio-alto (lindo gatito)
+    osc1.frequency.setValueAtTime(baseFreq, t);
+    osc1.frequency.exponentialRampToValueAtTime(690, t + 0.15);
+    osc1.frequency.exponentialRampToValueAtTime(490, t + duration);
+
+    osc2.frequency.setValueAtTime(baseFreq * 2, t);
+    osc2.frequency.exponentialRampToValueAtTime(690 * 2, t + 0.15);
+    osc2.frequency.exponentialRampToValueAtTime(490 * 2, t + duration);
+
+    // 6. Envolvente de volumen (Gain principal)
+    const mainGain = audioCtx.createGain();
+    mainGain.gain.setValueAtTime(0.001, t);
+    mainGain.gain.linearRampToValueAtTime(0.38, t + 0.05); // Ataque rápido (50ms)
+    mainGain.gain.setValueAtTime(0.38, t + 0.16);          // Breve meseta
+    mainGain.gain.exponentialRampToValueAtTime(0.001, t + duration); // Caída suave
+
+    // 7. Conexiones
     osc1.connect(gain1);
     osc2.connect(gain2);
-
     gain1.connect(filter);
     gain2.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
+    filter.connect(mainGain);
+    mainGain.connect(audioCtx.destination);
 
-    // Filtro para dar calidez al tono
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1400, t);
-    filter.frequency.exponentialRampToValueAtTime(700, t + 0.45);
-
-    // Modulación de frecuencia tipo "Miau"
-    const baseFreq = 440; // La4
-    osc1.frequency.setValueAtTime(baseFreq * 0.9, t);
-    osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, t + 0.12);
-    osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.1, t + 0.45);
-
-    osc2.frequency.setValueAtTime(baseFreq * 1.8, t);
-    osc2.frequency.exponentialRampToValueAtTime(baseFreq * 3.0, t + 0.12);
-    osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2.2, t + 0.45);
-
-    // Envolvente de volumen
-    gainNode.gain.setValueAtTime(0.001, t);
-    gainNode.gain.linearRampToValueAtTime(0.35, t + 0.08); // ataque rápido (volumen aumentado a 0.35)
-    gainNode.gain.setValueAtTime(0.35, t + 0.18);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.45); // caída
-
+    // 8. Reproducción
+    lfo.start(t);
     osc1.start(t);
     osc2.start(t);
-    osc1.stop(t + 0.45);
-    osc2.stop(t + 0.45);
+    
+    lfo.stop(t + duration);
+    osc1.stop(t + duration);
+    osc2.stop(t + duration);
   } catch (e) {
     console.warn("Audio Context failed to play meow:", e);
   }

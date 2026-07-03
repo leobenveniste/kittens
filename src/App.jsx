@@ -47,6 +47,7 @@ function App() {
   });
 
   const timerRef = useRef(null);
+  const gridRef = useRef(null);
 
   // Referencias para el gesto de arrastre (drag)
   const isDragging = useRef(false);
@@ -100,6 +101,69 @@ function App() {
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }, [gameStatus]);
+
+  // 5b. Referencias de callbacks para los listeners táctiles no pasivos
+  const startDragRef = useRef(null);
+  const continueDragRef = useRef(null);
+  const gameStatusRef = useRef(null);
+
+  useEffect(() => {
+    startDragRef.current = startDrag;
+    continueDragRef.current = continueDrag;
+    gameStatusRef.current = gameStatus;
+  });
+
+  // Efecto para registrar listeners táctiles no pasivos y prevenir scroll/zoom en arrastres
+  useEffect(() => {
+    const gridElement = gridRef.current;
+    if (!gridElement) return;
+
+    const onTouchStart = (e) => {
+      if (gameStatusRef.current === 'won') return;
+      lastTouchTime.current = Date.now();
+      const touch = e.touches[0];
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (element) {
+        const cellElement = element.closest('.game-cell');
+        if (cellElement) {
+          const r = parseInt(cellElement.getAttribute('data-row'), 10);
+          const c = parseInt(cellElement.getAttribute('data-col'), 10);
+          if (!isNaN(r) && !isNaN(c)) {
+            e.preventDefault(); // Seguro de preventDefault aquí (no es pasivo)
+            startDragRef.current(r, c, false);
+          }
+        }
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!isDragging.current || gameStatusRef.current === 'won') return;
+      e.preventDefault(); // Previene scroll mientras se arrastra
+      const touch = e.touches[0];
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (element) {
+        const cellElement = element.closest('.game-cell');
+        if (cellElement) {
+          const r = parseInt(cellElement.getAttribute('data-row'), 10);
+          const c = parseInt(cellElement.getAttribute('data-col'), 10);
+          if (!isNaN(r) && !isNaN(c)) {
+            if (lastTouchedCell.current?.r !== r || lastTouchedCell.current?.c !== c) {
+              lastTouchedCell.current = { r, c };
+              continueDragRef.current(r, c);
+            }
+          }
+        }
+      }
+    };
+
+    gridElement.addEventListener('touchstart', onTouchStart, { passive: false });
+    gridElement.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    return () => {
+      gridElement.removeEventListener('touchstart', onTouchStart);
+      gridElement.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []);
 
   // 6. Callback para obtener conflictos (Hook)
   const getConflicts = useCallback((currentCats, currentRegions) => {
@@ -318,44 +382,6 @@ function App() {
   // Gatos en conflicto
   const conflictingCats = getConflicts(cats, regions);
 
-  // Manejar arrastre por toque en móviles (Touch events)
-  const handleTouchStart = (e) => {
-    if (gameStatus === 'won') return;
-    lastTouchTime.current = Date.now(); // Registrar tiempo para bloquear mousedown emulado
-    const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (element) {
-      const cellElement = element.closest('.game-cell');
-      if (cellElement) {
-        const r = parseInt(cellElement.getAttribute('data-row'), 10);
-        const c = parseInt(cellElement.getAttribute('data-col'), 10);
-        if (!isNaN(r) && !isNaN(c)) {
-          e.preventDefault(); // Evitar scroll
-          startDrag(r, c, false);
-        }
-      }
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging.current || gameStatus === 'won') return;
-    const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (element) {
-      const cellElement = element.closest('.game-cell');
-      if (cellElement) {
-        const r = parseInt(cellElement.getAttribute('data-row'), 10);
-        const c = parseInt(cellElement.getAttribute('data-col'), 10);
-        if (!isNaN(r) && !isNaN(c)) {
-          if (lastTouchedCell.current?.r !== r || lastTouchedCell.current?.c !== c) {
-            lastTouchedCell.current = { r, c };
-            continueDrag(r, c);
-          }
-        }
-      }
-    }
-  };
-
   // Deshacer (Undo)
   const handleUndo = () => {
     if (history.length === 0 || gameStatus === 'won') return;
@@ -494,15 +520,15 @@ function App() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center md:justify-between gap-3 md:gap-4">
           
           {/* Logo en el centro en móvil, a la izquierda en escritorio */}
-          <div className="flex items-center justify-center md:justify-start gap-3.5 w-full md:w-auto">
-            <div className="p-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
-              <Cat className="w-7 h-7 md:w-8 md:h-8" />
+          <div className="flex items-center justify-center md:justify-start gap-4 w-full md:w-auto">
+            <div className="p-3 md:p-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-2xl shadow-sm">
+              <Cat className="w-10 h-10 md:w-12 md:h-12" />
             </div>
             <div className="flex flex-col text-center md:text-left">
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-none">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-neutral-900 dark:text-white leading-none">
                 Kittens
               </h1>
-              <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-semibold mt-0.5">
+              <span className="text-sm md:text-base text-neutral-400 dark:text-neutral-500 font-bold mt-1">
                 Lógica Felina
               </span>
             </div>
@@ -584,10 +610,9 @@ function App() {
 
             {/* Grid */}
             <div 
+              ref={gridRef}
               className="w-full max-w-[min(410px,84vw,44dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
               style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
               onTouchEnd={endDrag}
             >
               {Array.from({ length: puzzle.gridSize }).map((_, r) =>
