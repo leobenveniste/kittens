@@ -441,7 +441,6 @@ function App() {
       const size = puzzle.gridSize;
       const { candidates, placedCats } = getBoardCandidates(currentBoard);
       const regionsWithCats = new Set(placedCats.map(cat => regions[cat.r][cat.c]));
-      const discards = [];
 
       for (let regId = 0; regId < size; regId++) {
         if (regionsWithCats.has(regId)) continue;
@@ -454,7 +453,9 @@ function App() {
         const allInSameRow = regCandidates.every(cell => cell.r === firstRow);
         if (allInSameRow) {
           const rowDiscards = candidates.filter(cell => cell.r === firstRow && regions[cell.r][cell.c] !== regId);
-          discards.push(...rowDiscards);
+          if (rowDiscards.length > 0) {
+            return rowDiscards; // Retornar inmediatamente para dar solo una pista de esta fila
+          }
         }
 
         // Columna única
@@ -462,20 +463,13 @@ function App() {
         const allInSameCol = regCandidates.every(cell => cell.c === firstCol);
         if (allInSameCol) {
           const colDiscards = candidates.filter(cell => cell.c === firstCol && regions[cell.r][cell.c] !== regId);
-          discards.push(...colDiscards);
+          if (colDiscards.length > 0) {
+            return colDiscards; // Retornar inmediatamente para dar solo una pista de esta columna
+          }
         }
       }
 
-      const uniqueDiscards = [];
-      const seen = new Set();
-      for (let d of discards) {
-        const key = `${d.r}-${d.c}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          uniqueDiscards.push(d);
-        }
-      }
-      return uniqueDiscards;
+      return [];
     };
 
     // Deducción 2: Si colocar un gato en la celda candidata impide colocar un gato en otra región
@@ -487,8 +481,6 @@ function App() {
       for (let i = 0; i < size; i++) {
         if (!regionsWithCats.has(i)) activeRegions.push(i);
       }
-
-      const discards = [];
 
       for (let testCell of candidates) {
         const testReg = regions[testCell.r][testCell.c];
@@ -513,11 +505,11 @@ function App() {
         }
 
         if (causesDeadEnd) {
-          discards.push(testCell);
+          return [testCell]; // Retornar inmediatamente la primera celda deducida para dar solo una pista
         }
       }
 
-      return discards;
+      return [];
     };
 
     // Fallback: Descartar celdas basadas en la solución real
