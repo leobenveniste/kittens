@@ -187,18 +187,143 @@ function generateRegions(N, catPositions) {
 }
 
 // Lista de clases Tailwind CSS para fondos minimalistas más saturados (idénticos y vibrantes en ambos temas)
+// Agregamos una propiedad de "family" para clasificar colores similares y evitar adyacencias difíciles de distinguir.
 const PASTEL_COLORS = [
-  { name: 'rose', bg: 'bg-rose-200', hover: 'hover:bg-rose-300/50', text: 'text-rose-800', active: 'bg-rose-300' },
-  { name: 'indigo', bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300/50', text: 'text-indigo-800', active: 'bg-indigo-300' },
-  { name: 'emerald', bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300/50', text: 'text-emerald-800', active: 'bg-emerald-300' },
-  { name: 'amber', bg: 'bg-amber-200', hover: 'hover:bg-amber-300/50', text: 'text-amber-800', active: 'bg-amber-300' },
-  { name: 'cyan', bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300/50', text: 'text-cyan-800', active: 'bg-cyan-300' },
-  { name: 'purple', bg: 'bg-purple-200', hover: 'hover:bg-purple-300/50', text: 'text-purple-800', active: 'bg-purple-300' },
-  { name: 'orange', bg: 'bg-orange-200', hover: 'hover:bg-orange-300/50', text: 'text-orange-800', active: 'bg-orange-300' },
-  { name: 'lime', bg: 'bg-lime-200', hover: 'hover:bg-lime-300/50', text: 'text-lime-800', active: 'bg-lime-300' },
-  { name: 'fuchsia', bg: 'bg-fuchsia-200', hover: 'hover:bg-fuchsia-300/50', text: 'text-fuchsia-800', active: 'bg-fuchsia-300' },
-  { name: 'sky', bg: 'bg-sky-200', hover: 'hover:bg-sky-300/50', text: 'text-sky-800', active: 'bg-sky-300' }
+  { name: 'rose', bg: 'bg-rose-200', hover: 'hover:bg-rose-300/50', text: 'text-rose-800', active: 'bg-rose-300', family: 'red-pink' },
+  { name: 'indigo', bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300/50', text: 'text-indigo-800', active: 'bg-indigo-300', family: 'blue-indigo' },
+  { name: 'emerald', bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300/50', text: 'text-emerald-800', active: 'bg-emerald-300', family: 'green-emerald' },
+  { name: 'amber', bg: 'bg-amber-200', hover: 'hover:bg-amber-300/50', text: 'text-amber-800', active: 'bg-amber-300', family: 'yellow-orange' },
+  { name: 'cyan', bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300/50', text: 'text-cyan-800', active: 'bg-cyan-300', family: 'blue-sky' },
+  { name: 'purple', bg: 'bg-purple-200', hover: 'hover:bg-purple-300/50', text: 'text-purple-800', active: 'bg-purple-300', family: 'purple' },
+  { name: 'orange', bg: 'bg-orange-200', hover: 'hover:bg-orange-300/50', text: 'text-orange-800', active: 'bg-orange-300', family: 'yellow-orange' },
+  { name: 'lime', bg: 'bg-lime-200', hover: 'hover:bg-lime-300/50', text: 'text-lime-800', active: 'bg-lime-300', family: 'green-lime' },
+  { name: 'fuchsia', bg: 'bg-fuchsia-200', hover: 'hover:bg-fuchsia-300/50', text: 'text-fuchsia-800', active: 'bg-fuchsia-300', family: 'red-pink' },
+  { name: 'sky', bg: 'bg-sky-200', hover: 'hover:bg-sky-300/50', text: 'text-sky-800', active: 'bg-sky-300', family: 'blue-sky' }
 ];
+
+/**
+ * Asigna colores únicos a cada región de forma que regiones adyacentes nunca compartan la misma familia de color.
+ * Utiliza backtracking para resolver el coloreado de grafos con restricción de familia.
+ */
+function assignRegionColors(N, regions, colors) {
+  // 1. Detectar pares de regiones adyacentes (que comparten frontera)
+  const adjacentPairs = new Set();
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const currentReg = regions[r][c];
+      const neighbors = [
+        { r: r - 1, c },
+        { r: r + 1, c },
+        { r: r, c: c - 1 },
+        { r: r, c: c + 1 }
+      ];
+      for (let n of neighbors) {
+        if (n.r >= 0 && n.r < N && n.c >= 0 && n.c < N) {
+          const neighborReg = regions[n.r][n.c];
+          if (neighborReg !== currentReg) {
+            const key = currentReg < neighborReg 
+              ? `${currentReg}-${neighborReg}` 
+              : `${neighborReg}-${currentReg}`;
+            adjacentPairs.add(key);
+          }
+        }
+      }
+    }
+  }
+
+  // Crear la lista de adyacencias
+  const adjList = Array.from({ length: N }, () => []);
+  adjacentPairs.forEach(pair => {
+    const [u, v] = pair.split('-').map(Number);
+    adjList[u].push(v);
+    adjList[v].push(u);
+  });
+
+  // 2. Colorear las regiones (cada una con un color de la paleta asignado de forma única)
+  const regionColors = Array(N).fill(null);
+  const usedColors = new Set();
+
+  function solveColoring(regId) {
+    if (regId === N) return true;
+
+    // Mezclar los colores disponibles para máxima aleatoriedad
+    const shuffledColors = [...colors];
+    for (let i = shuffledColors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
+    }
+
+    for (let color of shuffledColors) {
+      if (usedColors.has(color.name)) continue;
+
+      // Verificar si algún vecino ya tiene un color de la misma familia
+      let familyClash = false;
+      for (let neighbor of adjList[regId]) {
+        const neighborColor = regionColors[neighbor];
+        if (neighborColor && neighborColor.family === color.family) {
+          familyClash = true;
+          break;
+        }
+      }
+
+      if (!familyClash) {
+        regionColors[regId] = color;
+        usedColors.add(color.name);
+        if (solveColoring(regId + 1)) return true;
+        usedColors.delete(color.name);
+        regionColors[regId] = null;
+      }
+    }
+
+    return false;
+  }
+
+  // Intentar resolver con la restricción estricta de familia de color.
+  if (solveColoring(0)) {
+    return regionColors;
+  }
+
+  // Fallback simple: Si la restricción de familia es demasiado estricta para la densidad del grafo,
+  // simplemente coloreamos evitando que dos vecinos tengan el mismo color exacto (sin restricción de familia).
+  const regionColorsFallback = Array(N).fill(null);
+  const usedColorsFallback = new Set();
+
+  function solveColoringFallback(regId) {
+    if (regId === N) return true;
+
+    const shuffledColors = [...colors];
+    for (let i = shuffledColors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
+    }
+
+    for (let color of shuffledColors) {
+      if (usedColorsFallback.has(color.name)) continue;
+
+      let nameClash = false;
+      for (let neighbor of adjList[regId]) {
+        const neighborColor = regionColorsFallback[neighbor];
+        if (neighborColor && neighborColor.name === color.name) {
+          nameClash = true;
+          break;
+        }
+      }
+
+      if (!nameClash) {
+        regionColorsFallback[regId] = color;
+        usedColorsFallback.add(color.name);
+        if (solveColoringFallback(regId + 1)) return true;
+        usedColorsFallback.delete(color.name);
+        regionColorsFallback[regId] = null;
+      }
+    }
+
+    return false;
+  }
+
+  solveColoringFallback(0);
+  return regionColorsFallback;
+}
 
 export function generatePuzzle(N) {
   let solution, regions;
@@ -232,15 +357,8 @@ export function generatePuzzle(N) {
     attempts++;
   } while (!validateRegionsSizes(regions) && attempts < 1000);
 
-  // Mezclar la paleta de colores para que las regiones tengan tonos variados e independientes
-  const shuffledColors = [...PASTEL_COLORS];
-  for (let i = shuffledColors.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
-  }
-
-  // Mapear cada región de ID 0..N-1 a un color de la paleta
-  const regionColors = Array.from({ length: N }, (_, i) => shuffledColors[i % shuffledColors.length]);
+  // Asignar colores inteligentes que evitan colisiones de familias de colores adyacentes
+  const regionColors = assignRegionColors(N, regions, PASTEL_COLORS);
 
   return {
     gridSize: N,
