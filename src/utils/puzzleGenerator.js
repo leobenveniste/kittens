@@ -325,6 +325,52 @@ function assignRegionColors(N, regions, colors) {
   return regionColorsFallback;
 }
 
+/**
+ * Cuenta cuántas soluciones válidas tiene el puzzle con las regiones generadas.
+ * Retorna 2 inmediatamente si se detecta más de una solución para optimizar la velocidad.
+ */
+function countSolutions(N, regions) {
+  let solutionsCount = 0;
+  const colsOccupied = Array(N).fill(false);
+  const regionsOccupied = Array(N).fill(false);
+  const cats = Array(N).fill(-1);
+
+  function solve(r) {
+    if (r === N) {
+      solutionsCount++;
+      return;
+    }
+
+    for (let c = 0; c < N; c++) {
+      if (colsOccupied[c]) continue;
+
+      const regId = regions[r][c];
+      if (regionsOccupied[regId]) continue;
+
+      // Adyacencia diagonal/directa (solo con la fila anterior)
+      if (r > 0 && Math.abs(cats[r - 1] - c) <= 1) continue;
+
+      // Colocar temporalmente
+      colsOccupied[c] = true;
+      regionsOccupied[regId] = true;
+      cats[r] = c;
+
+      solve(r + 1);
+
+      // Revertir
+      cats[r] = -1;
+      regionsOccupied[regId] = false;
+      colsOccupied[c] = false;
+
+      // Abortar si ya se encontró más de una solución
+      if (solutionsCount > 1) return;
+    }
+  }
+
+  solve(0);
+  return solutionsCount;
+}
+
 export function generatePuzzle(N) {
   let solution, regions;
   let attempts = 0;
@@ -355,7 +401,10 @@ export function generatePuzzle(N) {
     solution = generateValidCatPositions(N);
     regions = generateRegions(N, solution);
     attempts++;
-  } while (!validateRegionsSizes(regions) && attempts < 1000);
+  } while (
+    (!validateRegionsSizes(regions) || countSolutions(N, regions) !== 1) &&
+    attempts < 4000
+  );
 
   // Asignar colores inteligentes que evitan colisiones de familias de colores adyacentes
   const regionColors = assignRegionColors(N, regions, PASTEL_COLORS);
