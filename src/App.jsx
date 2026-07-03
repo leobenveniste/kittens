@@ -489,32 +489,36 @@ function App() {
     <div className="flex flex-col h-[100dvh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200 overflow-hidden">
       {/* Header */}
       <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200 shrink-0">
-        <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center md:justify-between gap-3 md:gap-4">
           
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
-              <Cat className="w-6 h-6" />
+          {/* Logo en el centro en móvil, a la izquierda en escritorio */}
+          <div className="flex items-center justify-center md:justify-start gap-3.5 w-full md:w-auto">
+            <div className="p-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
+              <Cat className="w-7 h-7 md:w-8 md:h-8" />
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white leading-none">
+            <div className="flex flex-col text-center md:text-left">
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-none">
                 Kittens
               </h1>
-              <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium mt-0.5">
+              <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-semibold mt-0.5">
                 Lógica Felina
               </span>
             </div>
           </div>
 
-          {/* Ajustes a la derecha */}
-          <div className="flex items-center gap-2">
+          {/* Ajustes: Selector de tamaño y botón Crear centrados abajo del logo en móvil */}
+          <div className="flex items-center justify-center gap-3 w-full md:w-auto">
+            
+            {/* Toggle de modo oscuro (solo visible en escritorio en el header) */}
             <button
               onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-              className="p-2 md:p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
+              className="hidden md:flex p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95 shrink-0"
               title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
             >
-              {theme === 'light' ? <Moon className="w-5.5 h-5.5 md:w-5 md:h-5" /> : <Sun className="w-5.5 h-5.5 md:w-5 md:h-5 text-amber-400" />}
+              {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6 text-amber-400" />}
             </button>
 
+            {/* Selector de Tamaño */}
             <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-lg p-0.5 bg-white dark:bg-neutral-900">
               <button 
                 onClick={() => {
@@ -523,12 +527,12 @@ function App() {
                   handleCreatePuzzle(newSize);
                 }}
                 disabled={gridSize <= 5}
-                className="p-2 md:p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer transition"
                 title="Reducir tamaño"
               >
-                <Minus className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <Minus className="w-5 h-5 md:w-4.5 md:h-4.5" />
               </button>
-              <span className="px-2 text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums">
+              <span className="px-3 text-sm md:text-base font-bold text-neutral-800 dark:text-neutral-200 tabular-nums">
                 {gridSize}×{gridSize}
               </span>
               <button 
@@ -538,19 +542,20 @@ function App() {
                   handleCreatePuzzle(newSize);
                 }}
                 disabled={gridSize >= 10}
-                className="p-2 md:p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-40 cursor-pointer transition"
                 title="Aumentar tamaño"
               >
-                <Plus className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <Plus className="w-5 h-5 md:w-4.5 md:h-4.5" />
               </button>
             </div>
             
+            {/* Botón Crear */}
             <button
               onClick={() => handleCreatePuzzle(gridSize)}
-              className="flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-medium text-xs px-3.5 py-2.5 md:px-2.5 md:py-1.5 rounded-lg border border-transparent transition active:scale-95 cursor-pointer shadow-sm"
+              className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-bold text-xs md:text-sm px-4 py-3 md:px-3 md:py-2 rounded-lg border border-transparent transition active:scale-95 cursor-pointer shadow-sm"
             >
-              <RefreshCw className="w-3.5 h-3.5 md:w-3 md:h-3" />
-              <span className="hidden sm:inline">Crear</span>
+              <RefreshCw className="w-4 h-4 md:w-3.5 md:h-3.5" />
+              <span>Crear</span>
             </button>
           </div>
 
@@ -564,29 +569,29 @@ function App() {
           <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
             
             {/* Estadísticas (Info) justo arriba de la grilla */}
-            <div className="flex items-center justify-center gap-5 md:gap-7 text-xs md:text-sm font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-5 py-2 md:py-1.5 rounded-full shadow-xs w-full mb-3 shrink-0">
+            <div className="flex items-center justify-center gap-5 md:gap-7 text-sm md:text-base font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-6 py-2.5 md:py-2 rounded-full shadow-xs w-full mb-3.5 shrink-0">
               <span className="flex items-center gap-1.5 cursor-help" title="Tiempo transcurrido">
-                ⏱️ <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{formatTime(time)}</span>
+                ⏱️ <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{formatTime(time)}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
               <span className="flex items-center gap-1.5 cursor-help" title="Movimientos realizados">
-                🔄 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{moves}</span>
+                🔄 <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{moves}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
               <span className="flex items-center gap-1.5 cursor-help" title="Gatos colocados en el tablero">
-                🐱 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
+                🐱 <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
               </span>
             </div>
 
             {conflictingCats.size > 0 && gameStatus !== 'won' && (
-              <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium shrink-0">
+              <div className="w-full mb-3.5 text-center text-sm md:text-base text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-2 px-4 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-semibold shrink-0">
                 ⚠️ ¡Hay gatos en conflicto en la grilla!
               </div>
             )}
 
             {/* Grid */}
             <div 
-              className="w-full max-w-[min(410px,84vw,47dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
+              className="w-full max-w-[min(410px,84vw,44dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
               style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -643,19 +648,19 @@ function App() {
                     >
                       {isCat ? (
                         <div className={`
-                          transform transition-transform duration-200 scale-90 md:scale-100
+                          transform transition-transform duration-200 scale-95 md:scale-100
                           ${isConflicting ? 'text-red-600 animate-bounce' : 'text-neutral-900'}
                           ${isHintAnim ? 'text-amber-600 scale-110' : ''}
                         `}>
-                          <Cat className="w-6 h-6 md:w-8 md:h-8 fill-current" />
+                          <Cat className="w-7 h-7 md:w-9 md:h-9 fill-current" />
                         </div>
                       ) : isAutoX ? (
                         <div className="text-black/25 flex items-center justify-center">
-                          <X className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2]" />
+                          <X className="w-4.5 h-4.5 md:w-5 md:h-5 stroke-[2]" />
                         </div>
                       ) : isManualX ? (
                         <div className={`text-black/55 flex items-center justify-center ${isHintAnim ? 'animate-pulse scale-110 text-amber-600' : 'animate-[scaleIn_0.15s_ease-out]'}`}>
-                          <X className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3]" />
+                          <X className="w-4.5 h-4.5 md:w-5 md:h-5 stroke-[3]" />
                         </div>
                       ) : null}
                     </div>
@@ -665,44 +670,44 @@ function App() {
             </div>
 
             {/* Botones de Acción (Tools) abajo, centrados */}
-            <div className="flex items-center justify-center gap-3 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-6 py-2.5 rounded-full shadow-sm shrink-0 mt-4">
+            <div className="flex items-center justify-center gap-3.5 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-7 py-3 rounded-full shadow-sm shrink-0 mt-4">
               <button
                 onClick={handleUndo}
                 disabled={history.length === 0 || gameStatus === 'won'}
-                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
                 title="Deshacer (Undo)"
               >
-                <RotateCcw className="w-5 h-5 md:w-4 md:h-4" />
+                <RotateCcw className="w-6 h-6 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={handleHint}
                 disabled={gameStatus === 'won'}
-                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
                 title="Descartar 4 casilleros vacíos"
               >
-                <Lightbulb className="w-5 h-5 md:w-4 md:h-4" />
+                <Lightbulb className="w-6 h-6 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={handleSolve}
                 disabled={gameStatus === 'won'}
-                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
                 title="Resolver automáticamente"
               >
-                <Eye className="w-5 h-5 md:w-4 md:h-4" />
+                <Eye className="w-6 h-6 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={handleReset}
-                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
                 title="Reiniciar tablero"
               >
-                <X className="w-5 h-5 md:w-4 md:h-4" />
+                <X className="w-6 h-6 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={() => setShowInstructions(true)}
-                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                className="p-2.5 md:p-2 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
                 title="Cómo jugar"
               >
-                <HelpCircle className="w-5 h-5 md:w-4 md:h-4" />
+                <HelpCircle className="w-6 h-6 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
@@ -807,13 +812,27 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-5xl mx-auto px-6 py-2.5 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
-        <span className="text-xs">
-          Kittens Puzzle &copy; 2026
-        </span>
-        <span className="text-sm font-normal text-neutral-500 dark:text-neutral-500 italic pr-2">
-          para Ce
-        </span>
+      <footer className="w-full max-w-5xl mx-auto px-6 py-2 flex flex-col md:flex-row items-center justify-between gap-3 text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
+        
+        {/* Toggle de tema de color para móvil - centrado en el footer con tamaño más grande */}
+        <div className="flex md:hidden justify-center w-full mt-0.5">
+          <button
+            onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+            className="p-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
+            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+          >
+            {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6 text-amber-400" />}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between w-full md:w-auto text-xs md:text-sm gap-4 font-medium">
+          <span>
+            Kittens Puzzle &copy; 2026
+          </span>
+          <span className="font-semibold text-neutral-500 dark:text-neutral-500 italic pr-1">
+            para Ce
+          </span>
+        </div>
       </footer>
 
       <style>{`
