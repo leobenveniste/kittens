@@ -569,22 +569,22 @@ function App() {
           <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
             
             {/* Estadísticas (Info) justo arriba de la grilla */}
-            <div className="flex items-center justify-center gap-5 md:gap-7 text-sm md:text-base font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-6 py-2.5 md:py-2 rounded-full shadow-xs w-full mb-3.5 shrink-0">
-              <span className="flex items-center gap-1.5 cursor-help" title="Tiempo transcurrido">
-                ⏱️ <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{formatTime(time)}</span>
+            <div className="flex items-center justify-center gap-6 md:gap-8 text-base md:text-lg font-extrabold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-7 py-3 md:py-2.5 rounded-full shadow-xs w-full mb-3.5 shrink-0">
+              <span className="flex items-center gap-2 cursor-help" title="Tiempo transcurrido">
+                ⏱️ <span className="tabular-nums font-black text-neutral-900 dark:text-white">{formatTime(time)}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
-              <span className="flex items-center gap-1.5 cursor-help" title="Movimientos realizados">
-                🔄 <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{moves}</span>
+              <span className="flex items-center gap-2 cursor-help" title="Movimientos realizados">
+                🔄 <span className="tabular-nums font-black text-neutral-900 dark:text-white">{moves}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
-              <span className="flex items-center gap-1.5 cursor-help" title="Gatos colocados en el tablero">
-                🐱 <span className="tabular-nums font-extrabold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
+              <span className="flex items-center gap-2 cursor-help" title="Gatos colocados en el tablero">
+                🐱 <span className="tabular-nums font-black text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
               </span>
             </div>
 
             {conflictingCats.size > 0 && gameStatus !== 'won' && (
-              <div className="w-full mb-3.5 text-center text-sm md:text-base text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-2 px-4 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-semibold shrink-0">
+              <div className="w-full mb-3.5 text-center text-base md:text-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-2.5 px-4.5 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-bold shrink-0">
                 ⚠️ ¡Hay gatos en conflicto en la grilla!
               </div>
             )}
@@ -712,41 +712,40 @@ function App() {
             </div>
           </div>
         </div>
-
-        {/* Modal Victoria */}
+           {/* Modal Victoria */}
         {gameStatus === 'won' && !solvedByComputer && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-45 p-4">
-            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-center shadow-2xl animate-[scaleIn_0.3s_ease-out]">
+            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-md w-full text-center shadow-2xl animate-[scaleIn_0.3s_ease-out]">
               <div className="inline-flex items-center justify-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-2xl text-amber-500 mb-4 border border-amber-100 dark:border-amber-900/40">
-                <Trophy className="w-12 h-12 stroke-[1.5]" />
+                <Trophy className="w-14 h-14 stroke-[1.5]" />
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+              <h2 className="text-3xl font-extrabold text-neutral-900 dark:text-white mb-2">
                 ¡Excelente Trabajo!
               </h2>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+              <p className="text-base text-neutral-500 dark:text-neutral-400 mb-6 font-medium">
                 Has ubicado todos los gatitos correctamente sin ningún conflicto.
               </p>
 
-              <div className="grid grid-cols-3 gap-3 bg-neutral-50 dark:bg-neutral-950 p-4 rounded-xl mb-6 border border-neutral-100 dark:border-amber-900/45 text-neutral-700 dark:text-neutral-300">
+              <div className="grid grid-cols-3 gap-3.5 bg-neutral-50 dark:bg-neutral-950 p-4.5 rounded-xl mb-6 border border-neutral-100 dark:border-amber-900/45 text-neutral-700 dark:text-neutral-300">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Tiempo</span>
-                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{formatTime(time)}</span>
+                  <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Tiempo</span>
+                  <span className="text-lg md:text-xl font-extrabold text-neutral-900 dark:text-white tabular-nums mt-0.5">{formatTime(time)}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Movimientos</span>
-                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{moves}</span>
+                  <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Movimientos</span>
+                  <span className="text-lg md:text-xl font-extrabold text-neutral-900 dark:text-white tabular-nums mt-0.5">{moves}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium uppercase tracking-wider">Pistas</span>
-                  <span className="text-base font-bold text-neutral-900 dark:text-white tabular-nums">{hintsUsed}</span>
+                  <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Pistas</span>
+                  <span className="text-lg md:text-xl font-extrabold text-neutral-900 dark:text-white tabular-nums mt-0.5">{hintsUsed}</span>
                 </div>
               </div>
 
               <button
                 onClick={() => handleCreatePuzzle(gridSize)}
-                className="w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-semibold py-3 rounded-xl border-2 border-neutral-900 dark:border-white transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-bold py-3.5 md:py-4 rounded-xl border-2 border-neutral-900 dark:border-white transition active:scale-95 shadow-md flex items-center justify-center gap-2.5 cursor-pointer text-base md:text-lg"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-5 h-5" />
                 <span>Jugar de nuevo</span>
               </button>
             </div>
@@ -756,45 +755,45 @@ function App() {
         {/* Modal Instrucciones */}
         {showInstructions && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-sm w-full text-left shadow-2xl animate-[scaleIn_0.2s_ease-out] relative">
+            <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-md w-full text-left shadow-2xl animate-[scaleIn_0.2s_ease-out] relative">
               <button 
                 onClick={() => setShowInstructions(false)}
-                className="absolute top-4 right-4 p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg text-neutral-400 dark:text-neutral-500 transition cursor-pointer"
+                className="absolute top-4 right-4 p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg text-neutral-400 dark:text-neutral-500 transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
               
-              <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-700 pb-3 mb-4">
-                <HelpCircle className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
-                <h2 className="text-lg font-bold text-neutral-900 dark:text-white">¿Cómo Jugar?</h2>
+              <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-700 pb-3.5 mb-4">
+                <HelpCircle className="w-6 h-6 text-neutral-900 dark:text-neutral-100" />
+                <h2 className="text-xl md:text-2xl font-extrabold text-neutral-900 dark:text-white">¿Cómo Jugar?</h2>
               </div>
 
-              <div className="space-y-3.5 text-xs md:text-sm text-neutral-600 dark:text-neutral-300">
-                <p>
+              <div className="space-y-4 text-sm md:text-base text-neutral-600 dark:text-neutral-300">
+                <p className="font-medium">
                   El objetivo es ubicar exactamente <strong>un gato</strong> en cada fila, columna y sección de color.
                 </p>
-                <div className="border-l-4 border-neutral-900 dark:border-neutral-500 pl-3 py-1 space-y-2 text-xs">
+                <div className="border-l-4 border-neutral-900 dark:border-neutral-500 pl-3.5 py-1 space-y-2.5 text-xs md:text-sm">
                   <div className="flex items-start gap-1.5">
-                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">1.</span>
+                    <span className="text-neutral-950 dark:text-neutral-100 font-extrabold">1.</span>
                     <p>Un solo gato por <strong>sección de color</strong>.</p>
                   </div>
                   <div className="flex items-start gap-1.5">
-                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">2.</span>
+                    <span className="text-neutral-950 dark:text-neutral-100 font-extrabold">2.</span>
                     <p>Un solo gato por cada <strong>fila y columna</strong>.</p>
                   </div>
                   <div className="flex items-start gap-1.5">
-                    <span className="text-neutral-950 dark:text-neutral-100 font-bold">3.</span>
+                    <span className="text-neutral-950 dark:text-neutral-100 font-extrabold">3.</span>
                     <p>Los gatos <strong>no pueden tocarse</strong> entre sí (tampoco en diagonal).</p>
                   </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-700 space-y-2 text-xs">
+                <div className="mt-4 pt-3.5 border-t border-neutral-200 dark:border-neutral-700 space-y-2.5 text-xs md:text-sm">
                   <p>
-                    <strong className="text-neutral-900 dark:text-white">Clic izquierdo:</strong> rota entre Vacío ➔ Cruz ➔ Gato ➔ Vacío.
+                    <strong className="text-neutral-900 dark:text-white">Clic izquierdo / Toque:</strong> rota entre Vacío ➔ Cruz ➔ Gato ➔ Vacío.
                   </p>
                   <p>
-                    <strong className="text-neutral-900 dark:text-white">Clic derecho:</strong> coloca o quita una cruz manual.
+                    <strong className="text-neutral-900 dark:text-white">Clic derecho / Toque largo:</strong> coloca o quita una cruz manual.
                   </p>
-                  <p className="bg-neutral-100 dark:bg-neutral-900/60 p-2.5 rounded-lg text-[10px] md:text-xs text-neutral-500 dark:text-neutral-400 italic">
+                  <p className="bg-neutral-100 dark:bg-neutral-900/60 p-3 rounded-lg text-xs text-neutral-500 dark:text-neutral-400 italic leading-relaxed">
                     Tip: Al colocar un gato, se descartan automáticamente (cruces) su fila, columna, sección y alrededores, ayudando a resolver el puzzle por lógica.
                   </p>
                 </div>
@@ -802,7 +801,7 @@ function App() {
 
               <button
                 onClick={() => setShowInstructions(false)}
-                className="mt-6 w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-semibold py-2.5 rounded-xl border border-transparent transition active:scale-95 cursor-pointer text-center text-xs"
+                className="mt-6 w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-bold py-3 rounded-xl border border-transparent transition active:scale-95 cursor-pointer text-center text-sm md:text-base"
               >
                 ¡Entendido!
               </button>
