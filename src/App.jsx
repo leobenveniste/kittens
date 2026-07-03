@@ -396,76 +396,215 @@ function App() {
   const handleHint = () => {
     if (gameStatus === 'won') return;
 
-    const getNeighbors = (row, col) => {
-      const neighbors = [];
-      if (row > 0) neighbors.push({ r: row - 1, c: col });
-      if (row < puzzle.gridSize - 1) neighbors.push({ r: row + 1, c: col });
-      if (col > 0) neighbors.push({ r: row, c: col - 1 });
-      if (col < puzzle.gridSize - 1) neighbors.push({ r: row, c: col + 1 });
-      return neighbors;
+    // Helper para obtener celdas candidatas viables (vacías y no bloqueadas)
+    const getBoardCandidates = (currentBoard) => {
+      const size = puzzle.gridSize;
+      const candidates = [];
+      
+      const placedCats = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (currentBoard[r]?.[c] === 'cat') {
+            placedCats.push({ r, c });
+          }
+        }
+      }
+
+      const isCellBlocked = (r, c) => {
+        if (currentBoard[r]?.[c] !== 'empty') return true;
+        return placedCats.some(cat => {
+          const sameRow = cat.r === r;
+          const sameCol = cat.c === c;
+          const adjacent = Math.abs(cat.r - r) <= 1 && Math.abs(cat.c - c) <= 1;
+          const sameRegion = regions[cat.r]?.[cat.c] === regions[r]?.[c];
+          return sameRow || sameCol || adjacent || sameRegion;
+        });
+      };
+
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (!isCellBlocked(r, c)) {
+            candidates.push({ r, c });
+          }
+        }
+      }
+      return { candidates, placedCats };
     };
 
-    const candidates = [];
-    for (let r = 0; r < puzzle.gridSize; r++) {
-      for (let c = 0; c < puzzle.gridSize; c++) {
-        const inSolution = solution.some(s => s.r === r && s.c === c);
-        const isCurrentlyEmpty = board[r][c] === 'empty' && !isBlockedByCat(r, c);
-        if (!inSolution && isCurrentlyEmpty) {
-          candidates.push({ r, c });
+    // Deducción 1: Región cuya huella de candidatos se limita a una sola fila/columna
+    const runDeduction1 = (currentBoard) => {
+      const size = puzzle.gridSize;
+      const { candidates, placedCats } = getBoardCandidates(currentBoard);
+      const regionsWithCats = new Set(placedCats.map(cat => regions[cat.r][cat.c]));
+      const discards = [];
+
+      for (let regId = 0; regId < size; regId++) {
+        if (regionsWithCats.has(regId)) continue;
+
+        const regCandidates = candidates.filter(cell => regions[cell.r][cell.c] === regId);
+        if (regCandidates.length === 0) continue;
+
+        // Fila única
+        const firstRow = regCandidates[0].r;
+        const allInSameRow = regCandidates.every(cell => cell.r === firstRow);
+        if (allInSameRow) {
+          const rowDiscards = candidates.filter(cell => cell.r === firstRow && regions[cell.r][cell.c] !== regId);
+          discards.push(...rowDiscards);
+        }
+
+        // Columna única
+        const firstCol = regCandidates[0].c;
+        const allInSameCol = regCandidates.every(cell => cell.c === firstCol);
+        if (allInSameCol) {
+          const colDiscards = candidates.filter(cell => cell.c === firstCol && regions[cell.r][cell.c] !== regId);
+          discards.push(...colDiscards);
         }
       }
-    }
 
-    let cellsToDiscard = [];
-
-    for (let start of candidates) {
-      const group = [start];
-      const queue = [...getNeighbors(start.r, start.c)];
-      
-      while (queue.length > 0 && group.length < 4) {
-        const next = queue.shift();
-        const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
-        const inGroup = group.some(c => c.r === next.r && c.c === next.c);
-        if (isCand && !inGroup) {
-          group.push(next);
-          queue.push(...getNeighbors(next.r, next.c));
+      const uniqueDiscards = [];
+      const seen = new Set();
+      for (let d of discards) {
+        const key = `${d.r}-${d.c}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueDiscards.push(d);
         }
       }
+      return uniqueDiscards;
+    };
 
-      if (group.length === 4) {
-        cellsToDiscard = group;
-        break;
+    // Deducción 2: Si colocar un gato en la celda candidata impide colocar un gato en otra región
+    const runDeduction2 = (currentBoard) => {
+      const size = puzzle.gridSize;
+      const { candidates, placedCats } = getBoardCandidates(currentBoard);
+      const regionsWithCats = new Set(placedCats.map(cat => regions[cat.r][cat.c]));
+      const activeRegions = [];
+      for (let i = 0; i < size; i++) {
+        if (!regionsWithCats.has(i)) activeRegions.push(i);
       }
-    }
 
-    if (cellsToDiscard.length === 0) {
-      for (let size = 3; size >= 1; size--) {
-        for (let start of candidates) {
-          const group = [start];
-          const queue = [...getNeighbors(start.r, start.c)];
-          while (queue.length > 0 && group.length < size) {
-            const next = queue.shift();
-            const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
-            const inGroup = group.some(c => c.r === next.r && c.c === next.c);
-            if (isCand && !inGroup) {
-              group.push(next);
-              queue.push(...getNeighbors(next.r, next.c));
-            }
-          }
-          if (group.length === size) {
-            cellsToDiscard = group;
+      const discards = [];
+
+      for (let testCell of candidates) {
+        const testReg = regions[testCell.r][testCell.c];
+
+        const remainingCandidatesAfterTest = candidates.filter(cell => {
+          if (cell.r === testCell.r && cell.c === testCell.c) return false;
+          if (cell.r === testCell.r) return false;
+          if (cell.c === testCell.c) return false;
+          if (Math.abs(cell.r - testCell.r) <= 1 && Math.abs(cell.c - testCell.c) <= 1) return false;
+          if (regions[cell.r][cell.c] === testReg) return false;
+          return true;
+        });
+
+        let causesDeadEnd = false;
+        for (let regId of activeRegions) {
+          if (regId === testReg) continue;
+          const regCandsLeft = remainingCandidatesAfterTest.some(cell => regions[cell.r][cell.c] === regId);
+          if (!regCandsLeft) {
+            causesDeadEnd = true;
             break;
           }
         }
-        if (cellsToDiscard.length > 0) break;
+
+        if (causesDeadEnd) {
+          discards.push(testCell);
+        }
       }
+
+      return discards;
+    };
+
+    // Fallback: Descartar celdas basadas en la solución real
+    const runFallbackDeduction = (currentBoard) => {
+      const size = puzzle.gridSize;
+      const getNeighbors = (row, col) => {
+        const neighbors = [];
+        if (row > 0) neighbors.push({ r: row - 1, c: col });
+        if (row < size - 1) neighbors.push({ r: row + 1, c: col });
+        if (col > 0) neighbors.push({ r: row, c: col - 1 });
+        if (col < size - 1) neighbors.push({ r: row, c: col + 1 });
+        return neighbors;
+      };
+
+      const candidates = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const inSolution = solution.some(s => s.r === r && s.c === c);
+          const isCurrentlyEmpty = currentBoard[r][c] === 'empty' && !isBlockedByCat(r, c);
+          if (!inSolution && isCurrentlyEmpty) {
+            candidates.push({ r, c });
+          }
+        }
+      }
+
+      let cellsToDiscard = [];
+      for (let start of candidates) {
+        const group = [start];
+        const queue = [...getNeighbors(start.r, start.c)];
+        while (queue.length > 0 && group.length < 4) {
+          const next = queue.shift();
+          const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
+          const inGroup = group.some(c => c.r === next.r && c.c === next.c);
+          if (isCand && !inGroup) {
+            group.push(next);
+            queue.push(...getNeighbors(next.r, next.c));
+          }
+        }
+        if (group.length === 4) {
+          cellsToDiscard = group;
+          break;
+        }
+      }
+
+      if (cellsToDiscard.length === 0) {
+        for (let sizeTest = 3; sizeTest >= 1; sizeTest--) {
+          for (let start of candidates) {
+            const group = [start];
+            const queue = [...getNeighbors(start.r, start.c)];
+            while (queue.length > 0 && group.length < sizeTest) {
+              const next = queue.shift();
+              const isCand = candidates.some(c => c.r === next.r && c.c === next.c);
+              const inGroup = group.some(c => c.r === next.r && c.c === next.c);
+              if (isCand && !inGroup) {
+                group.push(next);
+                queue.push(...getNeighbors(next.r, next.c));
+              }
+            }
+            if (group.length === sizeTest) {
+              cellsToDiscard = group;
+              break;
+            }
+          }
+          if (cellsToDiscard.length > 0) break;
+        }
+      }
+      return cellsToDiscard;
+    };
+
+    // --- FLUJO DE RESOLUCIÓN DE PISTA ---
+
+    // 1. Intentar Deducción 1
+    let cellsToDiscard = runDeduction1(board);
+
+    // 2. Si no hay, intentar Deducción 2
+    if (cellsToDiscard.length === 0) {
+      cellsToDiscard = runDeduction2(board);
     }
 
+    // 3. Limitar los resultados lógicos a un máximo de 4 casillas a la vez para mantener la pista clara
+    if (cellsToDiscard.length > 0) {
+      cellsToDiscard = cellsToDiscard.slice(0, 4);
+    } else {
+      // 4. Si todo lo lógico ya está descartado, hacer fallback a la solución del tablero
+      cellsToDiscard = runFallbackDeduction(board);
+    }
+
+    // Aplicar los descartes
     if (cellsToDiscard.length > 0) {
       playClick();
       setHistory(prev => [...prev, board]);
       setHintsUsed(h => h + 1);
-      setMoves(m => m + 1);
 
       const nextBoard = board.map((row, ri) =>
         row.map((val, ci) => {
