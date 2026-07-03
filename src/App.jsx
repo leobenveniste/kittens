@@ -576,8 +576,8 @@ function App() {
                 ⏱️ <span className="tabular-nums font-black text-neutral-900 dark:text-white">{formatTime(time)}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
-              <span className="flex items-center gap-2 cursor-help" title="Movimientos realizados">
-                🔄 <span className="tabular-nums font-black text-neutral-900 dark:text-white">{moves}</span>
+              <span className="flex items-center gap-2 cursor-help" title="Pistas utilizadas">
+                💡 <span className="tabular-nums font-black text-neutral-900 dark:text-white">{hintsUsed}</span>
               </span>
               <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
               <span className="flex items-center gap-2 cursor-help" title="Gatos colocados en el tablero">
@@ -724,14 +724,10 @@ function App() {
                 Has ubicado todos los gatitos correctamente sin ningún conflicto.
               </p>
 
-              <div className="grid grid-cols-3 gap-3.5 bg-neutral-50 dark:bg-neutral-950 p-4.5 rounded-xl mb-6 border border-neutral-100 dark:border-amber-900/45 text-neutral-700 dark:text-neutral-300">
+              <div className="grid grid-cols-2 gap-3.5 bg-neutral-50 dark:bg-neutral-950 p-4.5 rounded-xl mb-6 border border-neutral-100 dark:border-amber-900/45 text-neutral-700 dark:text-neutral-300">
                 <div className="flex flex-col">
                   <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Tiempo</span>
                   <span className="text-lg md:text-xl font-extrabold text-neutral-900 dark:text-white tabular-nums mt-0.5">{formatTime(time)}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Movimientos</span>
-                  <span className="text-lg md:text-xl font-extrabold text-neutral-900 dark:text-white tabular-nums mt-0.5">{moves}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs md:text-sm text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider">Pistas</span>
