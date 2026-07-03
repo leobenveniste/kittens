@@ -505,60 +505,19 @@ function App() {
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="col-span-2 order-3 md:order-2 flex items-center justify-between md:justify-start gap-x-4 md:gap-x-5 gap-y-2 text-xs md:text-sm font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-5 md:px-4 py-2.5 md:py-1.5 rounded-full shadow-sm w-full md:w-auto">
-            <div className="flex items-center gap-3 md:gap-4 border-r border-neutral-200 dark:border-neutral-700 pr-3 md:pr-4 text-xs md:text-sm">
-              <span className="flex items-center gap-1 cursor-help" title="Tiempo transcurrido">
-                ⏱️ <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</span>
-              </span>
-              <span className="flex items-center gap-1 cursor-help" title="Movimientos realizados">
-                🔄 <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{moves}</span>
-              </span>
-              <span className="flex items-center gap-1 cursor-help" title="Gatos colocados en el tablero">
-                🐱 <span className="tabular-nums font-semibold text-neutral-900 dark:text-neutral-100">{cats.length} / {puzzle.gridSize}</span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5 md:gap-1">
-              <button
-                onClick={handleUndo}
-                disabled={history.length === 0 || gameStatus === 'won'}
-                className="p-2 md:p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
-                title="Deshacer (Undo)"
-              >
-                <RotateCcw className="w-4.5 h-4.5 md:w-3.5 md:h-3.5" />
-              </button>
-              <button
-                onClick={handleHint}
-                disabled={gameStatus === 'won'}
-                className="p-2 md:p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
-                title="Descartar 4 casilleros vacíos"
-              >
-                <Lightbulb className="w-4.5 h-4.5 md:w-3.5 md:h-3.5" />
-              </button>
-              <button
-                onClick={handleSolve}
-                disabled={gameStatus === 'won'}
-                className="p-2 md:p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
-                title="Resolver automáticamente"
-              >
-                <Eye className="w-4.5 h-4.5 md:w-3.5 md:h-3.5" />
-              </button>
-              <button
-                onClick={handleReset}
-                className="p-2 md:p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
-                title="Reiniciar tablero"
-              >
-                <X className="w-4.5 h-4.5 md:w-3.5 md:h-3.5" />
-              </button>
-              <button
-                onClick={() => setShowInstructions(true)}
-                className="p-2 md:p-1 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
-                title="Cómo jugar"
-              >
-                <HelpCircle className="w-4.5 h-4.5 md:w-3.5 md:h-3.5" />
-              </button>
-            </div>
+          {/* Estadísticas (Info) en el Centro */}
+          <div className="col-span-2 order-3 md:order-2 flex items-center justify-center gap-5 md:gap-7 text-xs md:text-sm font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-5 py-2 md:py-1.5 rounded-full shadow-xs w-full md:w-auto">
+            <span className="flex items-center gap-1.5 cursor-help" title="Tiempo transcurrido">
+              ⏱️ <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{formatTime(time)}</span>
+            </span>
+            <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
+            <span className="flex items-center gap-1.5 cursor-help" title="Movimientos realizados">
+              🔄 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{moves}</span>
+            </span>
+            <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
+            <span className="flex items-center gap-1.5 cursor-help" title="Gatos colocados en el tablero">
+              🐱 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
+            </span>
           </div>
 
           {/* Ajustes a la derecha */}
@@ -626,7 +585,7 @@ function App() {
 
             {/* Grid */}
             <div 
-              className="w-full max-w-[min(410px,84vw,52dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
+              className="w-full max-w-[min(410px,84vw,47dvh)] aspect-square grid border-3 border-neutral-900 bg-white relative overflow-hidden shrink-0 touch-none"
               style={{ gridTemplateColumns: `repeat(${puzzle.gridSize}, minmax(0, 1fr))` }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -703,8 +662,49 @@ function App() {
                 })
               )}
             </div>
-          </div>
 
+            {/* Botones de Acción (Tools) abajo, centrados */}
+            <div className="flex items-center justify-center gap-3 bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/50 dark:border-neutral-800 px-6 py-2.5 rounded-full shadow-sm shrink-0 mt-4">
+              <button
+                onClick={handleUndo}
+                disabled={history.length === 0 || gameStatus === 'won'}
+                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Deshacer (Undo)"
+              >
+                <RotateCcw className="w-5 h-5 md:w-4 md:h-4" />
+              </button>
+              <button
+                onClick={handleHint}
+                disabled={gameStatus === 'won'}
+                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Descartar 4 casilleros vacíos"
+              >
+                <Lightbulb className="w-5 h-5 md:w-4 md:h-4" />
+              </button>
+              <button
+                onClick={handleSolve}
+                disabled={gameStatus === 'won'}
+                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                title="Resolver automáticamente"
+              >
+                <Eye className="w-5 h-5 md:w-4 md:h-4" />
+              </button>
+              <button
+                onClick={handleReset}
+                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                title="Reiniciar tablero"
+              >
+                <X className="w-5 h-5 md:w-4 md:h-4" />
+              </button>
+              <button
+                onClick={() => setShowInstructions(true)}
+                className="p-2 md:p-1.5 hover:bg-white dark:hover:bg-neutral-750 hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                title="Cómo jugar"
+              >
+                <HelpCircle className="w-5 h-5 md:w-4 md:h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Modal Victoria */}
