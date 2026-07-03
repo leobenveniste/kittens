@@ -189,17 +189,18 @@ function generateRegions(N, catPositions) {
 // Lista de clases Tailwind CSS para fondos minimalistas más saturados (idénticos y vibrantes en ambos temas)
 // Agregamos una propiedad de "family" para clasificar colores similares y evitar adyacencias difíciles de distinguir.
 const PASTEL_COLORS = [
-  { name: 'rose', bg: 'bg-rose-200', hover: 'hover:bg-rose-300/50', text: 'text-rose-800', active: 'bg-rose-300', family: 'red-pink' },
-  { name: 'indigo', bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300/50', text: 'text-indigo-800', active: 'bg-indigo-300', family: 'blue-indigo' },
-  { name: 'emerald', bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300/50', text: 'text-emerald-800', active: 'bg-emerald-300', family: 'green-emerald' },
-  { name: 'amber', bg: 'bg-amber-200', hover: 'hover:bg-amber-300/50', text: 'text-amber-800', active: 'bg-amber-300', family: 'yellow-orange' },
-  { name: 'cyan', bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300/50', text: 'text-cyan-800', active: 'bg-cyan-300', family: 'blue-sky' },
-  { name: 'purple', bg: 'bg-purple-200', hover: 'hover:bg-purple-300/50', text: 'text-purple-800', active: 'bg-purple-300', family: 'purple' },
-  { name: 'orange', bg: 'bg-orange-200', hover: 'hover:bg-orange-300/50', text: 'text-orange-800', active: 'bg-orange-300', family: 'yellow-orange' },
-  { name: 'lime', bg: 'bg-lime-200', hover: 'hover:bg-lime-300/50', text: 'text-lime-800', active: 'bg-lime-300', family: 'green-lime' },
-  { name: 'fuchsia', bg: 'bg-fuchsia-200', hover: 'hover:bg-fuchsia-300/50', text: 'text-fuchsia-800', active: 'bg-fuchsia-300', family: 'red-pink' },
-  { name: 'sky', bg: 'bg-sky-200', hover: 'hover:bg-sky-300/50', text: 'text-sky-800', active: 'bg-sky-300', family: 'blue-sky' }
+  { name: 'lavender', bg: 'bg-board-lavender', hover: 'hover:bg-board-lavender-hover', text: 'text-purple-800', active: 'bg-board-lavender-hover', family: 'purple' },
+  { name: 'peach', bg: 'bg-board-peach', hover: 'hover:bg-board-peach-hover', text: 'text-amber-800', active: 'bg-board-peach-hover', family: 'orange' },
+  { name: 'blue', bg: 'bg-board-blue', hover: 'hover:bg-board-blue-hover', text: 'text-blue-800', active: 'bg-board-blue-hover', family: 'blue' },
+  { name: 'green', bg: 'bg-board-green', hover: 'hover:bg-board-green-hover', text: 'text-green-800', active: 'bg-board-green-hover', family: 'green' },
+  { name: 'gray', bg: 'bg-board-gray', hover: 'hover:bg-board-gray-hover', text: 'text-neutral-800', active: 'bg-board-gray-hover', family: 'gray' },
+  { name: 'coral', bg: 'bg-board-coral', hover: 'hover:bg-board-coral-hover', text: 'text-red-800', active: 'bg-board-coral-hover', family: 'red' },
+  { name: 'yellow', bg: 'bg-board-yellow', hover: 'hover:bg-board-yellow-hover', text: 'text-lime-800', active: 'bg-board-yellow-hover', family: 'yellow' },
+  { name: 'pink', bg: 'bg-board-pink', hover: 'hover:bg-board-pink-hover', text: 'text-fuchsia-800', active: 'bg-board-pink-hover', family: 'pink' },
+  { name: 'taupe', bg: 'bg-board-taupe', hover: 'hover:bg-board-taupe-hover', text: 'text-stone-800', active: 'bg-board-taupe-hover', family: 'brown' },
+  { name: 'mint', bg: 'bg-board-mint', hover: 'hover:bg-board-mint-hover', text: 'text-teal-800', active: 'bg-board-mint-hover', family: 'teal' }
 ];
+
 
 /**
  * Asigna colores únicos a cada región de forma que regiones adyacentes nunca compartan la misma familia de color.

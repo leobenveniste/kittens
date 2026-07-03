@@ -50,3 +50,75 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
+
+/* Custom board region colors matching the user's design */
+.bg-board-lavender {
+  background-color: #B399E4;
+}
+.hover\:bg-board-lavender-hover:hover {
+  background-color: #A287D7;
+}
+
+.bg-board-peach {
+  background-color: #FED39C;
+}
+.hover\:bg-board-peach-hover:hover {
+  background-color: #EDC18A;
+}
+
+.bg-board-blue {
+  background-color: #93BCFD;
+}
+.hover\:bg-board-blue-hover:hover {
+  background-color: #7FAAEC;
+}
+
+.bg-board-green {
+  background-color: #9DD198;
+}
+.hover\:bg-board-green-hover:hover {
+  background-color: #89C084;
+}
+
+.bg-board-gray {
+  background-color: #E5E5E5;
+}
+.hover\:bg-board-gray-hover:hover {
+  background-color: #D3D3D3;
+}
+
+.bg-board-coral {
+  background-color: #FF8066;
+}
+.hover\:bg-board-coral-hover:hover {
+  background-color: #ED6D53;
+}
+
+.bg-board-yellow {
+  background-color: #E6FA8A;
+}
+.hover\:bg-board-yellow-hover:hover {
+  background-color: #D3E876;
+}
+
+.bg-board-pink {
+  background-color: #E2A3C4;
+}
+.hover\:bg-board-pink-hover:hover {
+  background-color: #CF90B1;
+}
+
+.bg-board-taupe {
+  background-color: #B1AD99;
+}
+.hover\:bg-board-taupe-hover:hover {
+  background-color: #9F9A86;
+}
+
+.bg-board-mint {
+  background-color: #9CECDD;
+}
+.hover\:bg-board-mint-hover:hover {
+  background-color: #88D8C9;
+}
+
