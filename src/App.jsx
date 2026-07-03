@@ -656,11 +656,7 @@ function App() {
                         `}>
                           <Cat className="w-7 h-7 md:w-9 md:h-9 fill-current" />
                         </div>
-                      ) : isAutoX ? (
-                        <div className="text-black/25 flex items-center justify-center">
-                          <X className="w-4.5 h-4.5 md:w-5 md:h-5 stroke-[2]" />
-                        </div>
-                      ) : isManualX ? (
+                      ) : (isAutoX || isManualX) ? (
                         <div className={`text-black/55 flex items-center justify-center ${isHintAnim ? 'animate-pulse scale-110 text-amber-600' : 'animate-[scaleIn_0.15s_ease-out]'}`}>
                           <X className="w-4.5 h-4.5 md:w-5 md:h-5 stroke-[3]" />
                         </div>
