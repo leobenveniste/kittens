@@ -802,8 +802,8 @@ function App() {
                         <div 
                           className="absolute inset-0 pointer-events-none z-10 animate-[fadeIn_0.2s_ease-out]"
                           style={{
-                            backgroundImage: 'repeating-linear-gradient(45deg, rgba(80, 80, 80, 0.28), rgba(80, 80, 80, 0.28) 6px, transparent 6px, transparent 12px)',
-                            backgroundColor: 'rgba(80, 80, 80, 0.15)'
+                            backgroundImage: 'repeating-linear-gradient(45deg, rgba(80, 80, 80, 0.25), rgba(80, 80, 80, 0.25) 2px, transparent 2px, transparent 8px)',
+                            backgroundColor: 'rgba(80, 80, 80, 0.10)'
                           }}
                         />
                       )}
