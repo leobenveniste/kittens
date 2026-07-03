@@ -36,6 +36,7 @@ function App() {
   const [hintAnimationCell, setHintAnimationCell] = useState(null); // Casillas resaltadas por pista reciente
   const [solvedByComputer, setSolvedByComputer] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showVictoryModal, setShowVictoryModal] = useState(true);
 
   // Inicializar el tema de color desde localStorage o el sistema
   const [theme, setTheme] = useState(() => {
@@ -76,6 +77,7 @@ function App() {
     setHintsUsed(0);
     setHintAnimationCell(null);
     setSolvedByComputer(false);
+    setShowVictoryModal(true);
     
     // Iniciar temporizador
     if (timerRef.current) clearInterval(timerRef.current);
@@ -713,7 +715,7 @@ function App() {
           </div>
         </div>
            {/* Modal Victoria */}
-        {gameStatus === 'won' && !solvedByComputer && (
+        {gameStatus === 'won' && showVictoryModal && !solvedByComputer && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-45 p-4">
             <div className="bg-white dark:bg-neutral-800 rounded-2xl border-3 border-neutral-900 dark:border-neutral-800 p-6 md:p-8 max-w-md w-full text-center shadow-2xl animate-[scaleIn_0.3s_ease-out]">
               <div className="inline-flex items-center justify-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-2xl text-amber-500 mb-4 border border-amber-100 dark:border-amber-900/40">
@@ -741,13 +743,23 @@ function App() {
                 </div>
               </div>
 
-              <button
-                onClick={() => handleCreatePuzzle(gridSize)}
-                className="w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-bold py-3.5 md:py-4 rounded-xl border-2 border-neutral-900 dark:border-white transition active:scale-95 shadow-md flex items-center justify-center gap-2.5 cursor-pointer text-base md:text-lg"
-              >
-                <RefreshCw className="w-5 h-5" />
-                <span>Jugar de nuevo</span>
-              </button>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={() => handleCreatePuzzle(gridSize)}
+                  className="w-full bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-neutral-950 font-bold py-3.5 md:py-4 rounded-xl border-2 border-neutral-900 dark:border-white transition active:scale-95 shadow-md flex items-center justify-center gap-2.5 cursor-pointer text-base md:text-lg"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                  <span>Jugar de nuevo</span>
+                </button>
+
+                <button
+                  onClick={() => setShowVictoryModal(false)}
+                  className="w-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold py-3 md:py-3.5 rounded-xl border border-neutral-300/50 dark:border-neutral-600 transition active:scale-95 shadow-xs flex items-center justify-center gap-2 cursor-pointer text-sm md:text-base"
+                >
+                  <X className="w-5 h-5" />
+                  <span>Cerrar</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
