@@ -37,6 +37,7 @@ function App() {
   const [solvedByComputer, setSolvedByComputer] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showVictoryModal, setShowVictoryModal] = useState(true);
+  const [suggestedDiscards, setSuggestedDiscards] = useState([]);
 
   // Inicializar el tema de color desde localStorage o el sistema
   const [theme, setTheme] = useState(() => {
@@ -79,6 +80,7 @@ function App() {
     setHintAnimationCell(null);
     setSolvedByComputer(false);
     setShowVictoryModal(true);
+    setSuggestedDiscards([]);
     
     // Iniciar temporizador
     if (timerRef.current) clearInterval(timerRef.current);
@@ -224,6 +226,7 @@ function App() {
   // 8. Click izquierdo en celda: rota entre vacio -> cruz -> gato -> vacio
   const handleCellClick = (r, c, isStart = false) => {
     if (gameStatus === 'won') return board[r][c];
+    setSuggestedDiscards([]);
 
     const currentState = board[r][c];
     let nextState = 'empty';
@@ -254,6 +257,7 @@ function App() {
   // 9. Click derecho para cruz manual rápida
   const handleCellRightClick = (r, c, isStart = false) => {
     if (gameStatus === 'won') return board[r][c];
+    setSuggestedDiscards([]);
 
     const currentState = board[r][c];
     let nextState = 'empty';
@@ -281,6 +285,7 @@ function App() {
   // 10. Gestores del arrastre (drag)
   const startDrag = (r, c, isRightClick = false) => {
     if (gameStatus === 'won') return;
+    setSuggestedDiscards([]);
     isDragging.current = true;
     lastTouchedCell.current = { r, c };
 
@@ -385,11 +390,11 @@ function App() {
   // Deshacer (Undo)
   const handleUndo = () => {
     if (history.length === 0 || gameStatus === 'won') return;
+    setSuggestedDiscards([]);
     playRemove();
     const prevBoard = history[history.length - 1];
     setBoard(prevBoard);
     setHistory(prev => prev.slice(0, -1));
-    setMoves(m => m + 1);
   };
 
   // Dar una pista (Hint)
@@ -592,29 +597,16 @@ function App() {
       cellsToDiscard = runDeduction2(board);
     }
 
-    // 3. Limitar los resultados lógicos a un máximo de 4 casillas a la vez para mantener la pista clara
-    if (cellsToDiscard.length > 0) {
-      cellsToDiscard = cellsToDiscard.slice(0, 4);
-    } else {
-      // 4. Si todo lo lógico ya está descartado, hacer fallback a la solución del tablero
+    // 3. Si todo lo lógico ya está descartado, hacer fallback a la solución del tablero
+    if (cellsToDiscard.length === 0) {
       cellsToDiscard = runFallbackDeduction(board);
     }
 
-    // Aplicar los descartes
+    // Aplicar las sugerencias en el estado sin alterar el tablero
     if (cellsToDiscard.length > 0) {
       playClick();
-      setHistory(prev => [...prev, board]);
       setHintsUsed(h => h + 1);
-
-      const nextBoard = board.map((row, ri) =>
-        row.map((val, ci) => {
-          const shouldDiscard = cellsToDiscard.some(cell => cell.r === ri && cell.c === ci);
-          return shouldDiscard ? 'cross' : val;
-        })
-      );
-      setBoard(nextBoard);
-      setHintAnimationCell(cellsToDiscard);
-      setTimeout(() => setHintAnimationCell(null), 1200);
+      setSuggestedDiscards(cellsToDiscard);
     } else {
       playError();
     }
@@ -639,6 +631,7 @@ function App() {
   // Reiniciar tablero actual
   const handleReset = () => {
     if (!board.some(row => row.some(cell => cell !== 'empty'))) return;
+    setSuggestedDiscards([]);
     playRemove();
     setHistory([]);
     setBoard(Array.from({ length: puzzle.gridSize }, () => Array(puzzle.gridSize).fill('empty')));
@@ -761,6 +754,7 @@ function App() {
                   const isCat = hasCat(r, c);
                   const isAutoX = hasAutoCross(r, c);
                   const isManualX = isManualCross(r, c);
+                  const isSuggested = suggestedDiscards.some(cell => cell.r === r && cell.c === c);
                   
                   const borderTop = (r === 0 || regions[r - 1][c] !== regionId) ? 'border-t-3 border-t-neutral-900' : 'border-t border-t-black/15';
                   const borderLeft = (c === 0 || regions[r][c - 1] !== regionId) ? 'border-l-3 border-l-neutral-900' : 'border-l border-l-black/15';
@@ -803,6 +797,17 @@ function App() {
                         ${bgClass}
                       `}
                     >
+                      {/* Capa de sugerencia: Rayado diagonal gris translúcido */}
+                      {isSuggested && (
+                        <div 
+                          className="absolute inset-0 pointer-events-none z-10 animate-[fadeIn_0.2s_ease-out]"
+                          style={{
+                            backgroundImage: 'repeating-linear-gradient(45deg, rgba(80, 80, 80, 0.28), rgba(80, 80, 80, 0.28) 6px, transparent 6px, transparent 12px)',
+                            backgroundColor: 'rgba(80, 80, 80, 0.15)'
+                          }}
+                        />
+                      )}
+
                       {isCat ? (
                         <div className={`
                           transform transition-transform duration-200 scale-95 md:scale-100
