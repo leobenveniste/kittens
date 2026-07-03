@@ -511,15 +511,6 @@ function App() {
           {/* Ajustes: Selector de tamaño y botón Crear centrados abajo del logo en móvil */}
           <div className="flex items-center justify-center gap-3 w-full md:w-auto">
             
-            {/* Toggle de modo oscuro (solo visible en escritorio en el header) */}
-            <button
-              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-              className="hidden md:flex p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95 shrink-0"
-              title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
-            >
-              {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6 text-amber-400" />}
-            </button>
-
             {/* Selector de Tamaño */}
             <div className="flex items-center border border-neutral-200 dark:border-neutral-800 rounded-lg p-0.5 bg-white dark:bg-neutral-900">
               <button 
@@ -815,27 +806,21 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-5xl mx-auto px-6 py-2 flex flex-col md:flex-row items-center justify-between gap-3 text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
+      <footer className="w-full max-w-5xl mx-auto px-6 py-2.5 flex items-center justify-between text-neutral-400 dark:text-neutral-600 border-t border-neutral-50 dark:border-neutral-900 transition-colors duration-200 shrink-0">
         
-        {/* Toggle de tema de color para móvil - centrado en el footer con tamaño más grande */}
-        <div className="flex md:hidden justify-center w-full mt-0.5">
-          <button
-            onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-            className="p-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
-            title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
-          >
-            {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6 text-amber-400" />}
-          </button>
-        </div>
+        {/* Toggle de tema de color - abajo a la izquierda para móvil y escritorio */}
+        <button
+          onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          className="p-2.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95 shrink-0"
+          title={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+        >
+          {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6 text-amber-400" />}
+        </button>
 
-        <div className="flex items-center justify-between w-full md:w-auto text-xs md:text-sm gap-4 font-medium">
-          <span>
-            Kittens Puzzle &copy; 2026
-          </span>
-          <span className="font-semibold text-neutral-500 dark:text-neutral-500 italic pr-1">
-            para Ce
-          </span>
-        </div>
+        {/* Dedicatoria "para Ce" más grande a la derecha */}
+        <span className="text-lg md:text-xl font-extrabold tracking-wider italic text-neutral-550 dark:text-neutral-450 pr-1 select-none">
+          para Ce
+        </span>
       </footer>
 
       <style>{`
