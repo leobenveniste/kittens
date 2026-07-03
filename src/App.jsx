@@ -165,7 +165,7 @@ function App() {
       gridElement.removeEventListener('touchstart', onTouchStart);
       gridElement.removeEventListener('touchmove', onTouchMove);
     };
-  }, []);
+  }, [puzzle]);
 
   // 6. Callback para obtener conflictos (Hook)
   const getConflicts = useCallback((currentCats, currentRegions) => {
