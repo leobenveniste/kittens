@@ -300,6 +300,7 @@ function App() {
 
   const continueDrag = (r, c) => {
     if (!isDragging.current || !dragTargetState.current || gameStatus === 'won') return;
+    setSuggestedDiscards([]); // Limpiar sugerencias al seguir arrastrando
     if (board[r][c] === dragTargetState.current) return; // Ya tiene el estado
 
     if (dragTargetState.current === 'cross') {
@@ -767,11 +768,17 @@ function App() {
                     bgClass = `${colorConfig.bg} ${colorConfig.hover}`;
                   }
 
+                  const cellStyle = {};
+                  if (isSuggested) {
+                    cellStyle.backgroundImage = 'repeating-linear-gradient(45deg, rgba(100, 100, 100, 0.35), rgba(100, 100, 100, 0.35) 2px, rgba(120, 120, 120, 0.15) 2px, rgba(120, 120, 120, 0.15) 8px)';
+                  }
+
                   return (
                     <div
                       key={`${r}-${c}`}
                       data-row={r}
                       data-col={c}
+                      style={cellStyle}
                       onMouseDown={(e) => {
                         // Bloquear mousedown emulado en pantallas táctiles
                         if (Date.now() - lastTouchTime.current < 500) return;
@@ -789,17 +796,6 @@ function App() {
                         ${bgClass}
                       `}
                     >
-                      {/* Capa de sugerencia: Rayado diagonal gris translúcido */}
-                      {isSuggested && (
-                        <div 
-                          className="absolute inset-0 pointer-events-none z-10 animate-[fadeIn_0.2s_ease-out]"
-                          style={{
-                            backgroundImage: 'repeating-linear-gradient(45deg, rgba(80, 80, 80, 0.25), rgba(80, 80, 80, 0.25) 2px, transparent 2px, transparent 8px)',
-                            backgroundColor: 'rgba(80, 80, 80, 0.10)'
-                          }}
-                        />
-                      )}
-
                       {isCat ? (
                         <div className={`
                           transform transition-transform duration-200 scale-95 md:scale-100
