@@ -79,19 +79,25 @@ function generateRegions(N, catPositions) {
     regionCells[i].push(pos);
   });
 
-  // Determinar límites de tamaño para cada región.
-  // Queremos que al menos 3 regiones tengan un tamaño máximo de 3 para cumplir el requerimiento del usuario.
+  // Determinar límites de tamaño para cada región según las nuevas condiciones:
+  // - una sección de 2 casillas
+  // - una sección de 3 casillas
+  // - dos secciones de 4 casillas
+  // - al menos una sección de 5 casillas (para N >= 6)
   const targetSizes = Array(N).fill(Infinity);
-  const smallRegionIndices = [];
-  while (smallRegionIndices.length < 3) {
-    const idx = Math.floor(Math.random() * N);
-    if (!smallRegionIndices.includes(idx)) {
-      smallRegionIndices.push(idx);
-    }
+  const indices = Array.from({ length: N }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-  smallRegionIndices.forEach(idx => {
-    targetSizes[idx] = 3;
-  });
+
+  targetSizes[indices[0]] = 2;
+  targetSizes[indices[1]] = 3;
+  targetSizes[indices[2]] = 4;
+  targetSizes[indices[3]] = 4;
+  if (N >= 6) {
+    targetSizes[indices[4]] = 5;
+  }
 
   let assignedCount = N;
   const totalCells = N * N;
@@ -198,23 +204,33 @@ export function generatePuzzle(N) {
   let solution, regions;
   let attempts = 0;
 
-  // Verifica si al menos 3 regiones tienen exactamente 3 casilleros
-  const hasThreeRegionsOfSize3 = (regGrid) => {
+  // Verifica si se cumplen las condiciones de tamaño de las secciones
+  const validateRegionsSizes = (regGrid) => {
     const counts = Array(N).fill(0);
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
         counts[regGrid[r][c]]++;
       }
     }
-    const countSize3 = counts.filter(count => count === 3).length;
-    return countSize3 >= 3;
+
+    const countOf2 = counts.filter(x => x === 2).length;
+    const countOf3 = counts.filter(x => x === 3).length;
+    const countOf4 = counts.filter(x => x === 4).length;
+    const countOf5OrMore = counts.filter(x => x >= 5).length;
+    const hasExactlyFive = counts.some(x => x === 5);
+
+    if (N === 5) {
+      return countOf2 === 1 && countOf3 === 1 && countOf4 === 2 && countOf5OrMore === 1;
+    } else {
+      return countOf2 === 1 && countOf3 === 1 && countOf4 === 2 && hasExactlyFive;
+    }
   };
 
   do {
     solution = generateValidCatPositions(N);
     regions = generateRegions(N, solution);
     attempts++;
-  } while (!hasThreeRegionsOfSize3(regions) && attempts < 500);
+  } while (!validateRegionsSizes(regions) && attempts < 1000);
 
   // Mezclar la paleta de colores para que las regiones tengan tonos variados e independientes
   const shuffledColors = [...PASTEL_COLORS];

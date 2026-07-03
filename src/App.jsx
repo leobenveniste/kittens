@@ -489,9 +489,9 @@ function App() {
     <div className="flex flex-col h-[100dvh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 select-none transition-colors duration-200 overflow-hidden">
       {/* Header */}
       <header className="w-full border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-30 transition-colors duration-200 shrink-0">
-        <div className="max-w-5xl mx-auto px-4 py-2.5 grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-3 md:gap-4">
+        <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
           
-          <div className="flex items-center gap-3 col-span-1 order-1 flex-row">
+          <div className="flex items-center gap-3">
             <div className="p-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-xl shadow-sm">
               <Cat className="w-6 h-6" />
             </div>
@@ -505,23 +505,8 @@ function App() {
             </div>
           </div>
 
-          {/* Estadísticas (Info) en el Centro */}
-          <div className="col-span-2 order-3 md:order-2 flex items-center justify-center gap-5 md:gap-7 text-xs md:text-sm font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-5 py-2 md:py-1.5 rounded-full shadow-xs w-full md:w-auto">
-            <span className="flex items-center gap-1.5 cursor-help" title="Tiempo transcurrido">
-              ⏱️ <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{formatTime(time)}</span>
-            </span>
-            <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
-            <span className="flex items-center gap-1.5 cursor-help" title="Movimientos realizados">
-              🔄 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{moves}</span>
-            </span>
-            <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
-            <span className="flex items-center gap-1.5 cursor-help" title="Gatos colocados en el tablero">
-              🐱 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
-            </span>
-          </div>
-
           {/* Ajustes a la derecha */}
-          <div className="flex items-center gap-2 col-span-1 order-2 justify-end">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
               className="p-2 md:p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 cursor-pointer transition active:scale-95"
@@ -577,6 +562,22 @@ function App() {
         <div className="flex flex-col items-center justify-center w-full">
           
           <div className="flex flex-col items-center justify-center max-w-[450px] w-full">
+            
+            {/* Estadísticas (Info) justo arriba de la grilla */}
+            <div className="flex items-center justify-center gap-5 md:gap-7 text-xs md:text-sm font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-50/50 dark:bg-neutral-800/20 border border-neutral-200/40 dark:border-neutral-800/30 px-5 py-2 md:py-1.5 rounded-full shadow-xs w-full mb-3 shrink-0">
+              <span className="flex items-center gap-1.5 cursor-help" title="Tiempo transcurrido">
+                ⏱️ <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{formatTime(time)}</span>
+              </span>
+              <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
+              <span className="flex items-center gap-1.5 cursor-help" title="Movimientos realizados">
+                🔄 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{moves}</span>
+              </span>
+              <span className="text-neutral-300 dark:text-neutral-800 font-light">|</span>
+              <span className="flex items-center gap-1.5 cursor-help" title="Gatos colocados en el tablero">
+                🐱 <span className="tabular-nums font-bold text-neutral-900 dark:text-white">{cats.length} / {puzzle.gridSize}</span>
+              </span>
+            </div>
+
             {conflictingCats.size > 0 && gameStatus !== 'won' && (
               <div className="w-full mb-3 text-center text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 py-1.5 px-3 rounded-lg border border-red-100 dark:border-red-900/40 animate-pulse font-medium shrink-0">
                 ⚠️ ¡Hay gatos en conflicto en la grilla!
